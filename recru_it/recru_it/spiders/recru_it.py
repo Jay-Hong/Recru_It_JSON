@@ -198,7 +198,7 @@ class Recru_It_Spider(scrapy.Spider):
 
     def parse(self, response):
         self.driver.get(response.url)
-        time.sleep(random.randint(3, 8)) # time.sleep(2)
+        time.sleep(random.randint(2, 7)) # time.sleep(2)
 
         # ildao_items 가져오기
         ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
@@ -257,11 +257,11 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
-        # 서울 16만 ~ 29만원
+        # 서울 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(2, 5))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -273,29 +273,49 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (서울 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 서울 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 서울 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 6))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (서울 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 서울 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(2, 5))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (서울 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 서울 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 6))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (서울 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
         # job_item = Recru_It_Item()
         # job_item['title'] = 'HM시스템 (시스템동바리/비계 설치및해체 작업) 초보자가능';job_item['site'] = '부산';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 16만원 이상'
@@ -304,11 +324,11 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
         
-        # 부산 16만 ~ 29만원
+        # 부산 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 17))   # time.sleep(3)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -320,35 +340,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (부산 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 부산 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 부산 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (부산 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 부산 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 17))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (부산 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
 
-        # 경기 16만 ~ 29만원
+        # # 부산 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (부산 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # 경기 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 23))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -360,35 +400,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (경기 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경기 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 경기 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 5))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (경기 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 경기 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 23))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경기 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 경기 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 5))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경기 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 인천 16만 ~ 29만원
+        # 인천 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 5))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -400,35 +460,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (인천 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 인천 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 인천 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 5))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (인천 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 인천 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 5))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (인천 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 인천 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 5))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (인천 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 충남 16만 ~ 29만원
+        # 충남 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -440,35 +520,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (충남 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 충남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 충남 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (충남 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 충남 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충남 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 충남 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충남 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 충북 16만 ~ 29만원
+        # 충북 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -480,35 +580,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (충북 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 충북 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 충북 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (충북 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 충북 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충북 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 충북 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충북 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 대전 16만 ~ 29만원
+        # 대전 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -520,35 +640,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (대전 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 대전 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 대전 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (대전 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 대전 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대전 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 대전 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대전 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 세종 16만 ~ 29만원
+        # 세종 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -560,35 +700,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (세종 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 세종 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 세종 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (세종 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 세종 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (세종 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 세종 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (세종 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 전남 16만 ~ 29만원
+        # 전남 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 17))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -600,35 +760,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (전남 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 전남 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (전남 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 전남 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 17))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전남 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 전남 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전남 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 광주 16만 ~ 29만원
+        # 광주 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0 and site_text_items[index].find('경기') == -1 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -640,35 +820,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (광주 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 광주 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 광주 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0 and site_text_items[index].find('경기') == -1 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (광주 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 광주 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0 and site_text_items[index].find('경기') == -1 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (광주 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 광주 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0 and site_text_items[index].find('경기') == -1 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (광주 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 전북 16만 ~ 29만원
+        # 전북 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -680,18 +880,58 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (전북 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전북 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 전북 16만 ~ 29만원 이외 & 협의
+        # # 전북 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전북 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 전북 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전북 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+        
+        # 경남 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
+        time.sleep(random.randint(3, 15))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     job_item = Recru_It_Item()
                     job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
@@ -700,15 +940,115 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (전북 ⬇️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
+
+        # # 경남 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 17))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경남 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 경남 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경남 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 경남 16만 ~ 29만원
+        # 울산 전체
+        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        time.sleep(random.randint(3, 7))   # time.sleep(2)
+        for index, job_item in enumerate(ildao_items):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0:
+                try:
+                    job_item.location_once_scrolled_into_view
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+                    job_item = Recru_It_Item()
+                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+                    yield job_item
+                except Exception as e:
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 울산 ) - - - - - - - - \n\n{e}\n\n")
+                else:
+                    pass
+
+        # # 울산 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (울산 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 울산 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (울산 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+        
+        # 경북 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 17))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -720,35 +1060,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (경남 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경북 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 경남 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (경남 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 경북 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 17))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경북 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 경북 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경북 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 울산 16만 ~ 29만원
+        # 대구 전체 (부산 해운대구X)
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -760,115 +1120,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (울산 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 대구 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 울산 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (울산 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 대구 16만 ~ 29만원 (부산 해운대구X)
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대구 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 대구 16만 ~ 29만원 이외 & 협의 (부산 해운대구X)
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대구 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 경북 16만 ~ 29만원
+        # 강원 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 17))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (경북 ⬆️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 경북 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (경북 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-        
-        # 대구 16만 ~ 29만원 (부산 해운대구X)
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (대구 ⬆️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 대구 16만 ~ 29만원 이외 & 협의 (부산 해운대구X)
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (대구 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-        
-        # 강원 16만 ~ 29만원
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 17))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('강원') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('강원') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -880,35 +1180,55 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (강원 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 강원 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 강원 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 11))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('강원') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (강원 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 강원 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 17))   # time.sleep(2)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('강원') >= 0 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (강원 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 강원 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 11))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('강원') >= 0 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (강원 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
         
-        # 그외지역 16만 ~ 29만원
+        # 그외지역 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(3)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
@@ -920,29 +1240,49 @@ class Recru_It_Spider(scrapy.Spider):
                     job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
                     yield job_item
                 except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (그외 ⬆️) - - - - - - - - \n\n{e}\n\n")
+                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 그외 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
 
-        # 그외지역 16만 ~ 29만원 이외 & 협의
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! (그외 ⬇️) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # # 그외지역 16만 ~ 29만원
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1 and pay_text_items[index].find('협의') == -1 and (len(pattern_16_19.findall(pay_text_items[index])) > 0 or len(pattern_20_29.findall(pay_text_items[index])) > 0):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (그외 ⬆️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
+
+        # # 그외지역 16만 ~ 29만원 이외 & 협의
+        # print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        # time.sleep(random.randint(3, 7))   # time.sleep(3)
+        # for index, job_item in enumerate(ildao_items):
+        #     if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1 and (pay_text_items[index].find('협의') >= 0 or (len(pattern_16_19.findall(pay_text_items[index])) == 0 and len(pattern_20_29.findall(pay_text_items[index])) == 0)):
+        #         try:
+        #             job_item.location_once_scrolled_into_view
+        #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             job_item = Recru_It_Item()
+        #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+        #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+        #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             yield job_item
+        #         except Exception as e:
+        #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (그외 ⬇️) - - - - - - - - \n\n{e}\n\n")
+        #         else:
+        #             pass
 
         time.sleep(random.randint(3, 30))
         print(f"\n\n\n총 아이템 수 : [{num_of_item}]\n")
@@ -1053,6 +1393,20 @@ class Recru_It_Spider(scrapy.Spider):
         # Change title
         title = re.sub('old', 'new', title)
         
+        title = re.sub('답십리씨젠의료재단사옥 금속// 기공21만원//준기공18만원//출퇴근 공기4개월', '답십리 씨젠의료재단사옥 금속 기공21만원 준기공18만원 공기4개월 출퇴근', title)
+        title = re.sub('\(주급/출퇴\)개봉동타이어뱅크외장판넬작업자모집합니다', '개봉동 타이어뱅크 외장판넬 작업자 모집합니다', title)
+        title = re.sub('시스템 동바리 /비계 직원채용 신규자16만 부터', '시스템 동바리/비계 직원채용 신규자16만 부터', title)
+        title = re.sub('새식구 구인합니다', '동작구 행정복지센터 알루미늄판 트러스 금속공정', title)
+        title = re.sub('함께하실분모십니다', '창호, 외장 함께하실분 모십니다', title)
+        title = re.sub('강남일원동삼성의료원', '강남 일원동 삼성의료원', title)
+        title = re.sub('010 5792 6048', '', title)
+        title = re.sub('old', 'new', title)
+        title = re.sub('old', 'new', title)
+        title = re.sub('old', 'new', title)
+        title = re.sub('old', 'new', title)
+        
+        title = re.sub('old', 'new', title)
+
         title = re.sub('현댕실스테이트', '현대힐스테이트', title)
         title = re.sub('모심니다', '모십니다', title)
         title = re.sub('끈기잇고', '끈기있고', title)
@@ -1069,37 +1423,30 @@ class Recru_It_Spider(scrapy.Spider):
 
         title = re.sub('old', 'new', title)
 
-        title = re.sub('답십리씨젠의료재단사옥 금속// 기공21만원//준기공18만원//출퇴근 공기4개월', '답십리 씨젠의료재단사옥 금속 기공21만원 준기공18만원 공기4개월 출퇴근', title)
-        title = re.sub('\(주급/출퇴\)개봉동타이어뱅크외장판넬작업자모집합니다', '개봉동 타이어뱅크 외장판넬 작업자 모집합니다', title)
-        title = re.sub('시스템 동바리 /비계 직원채용 신규자16만 부터', '시스템 동바리/비계 직원채용 신규자16만 부터', title)
-        title = re.sub('함께하실분모십니다', '창호, 외장 함께하실분 모십니다', title)
-        title = re.sub('강남일원동삼성의료원', '강남 일원동 삼성의료원', title)
-        title = re.sub('010 5792 6048', '', title)
-        title = re.sub('old', 'new', title)
-        title = re.sub('old', 'new', title)
-        title = re.sub('old', 'new', title)
-        title = re.sub('old', 'new', title)
-        
-        title = re.sub('old', 'new', title)
-
-        title = re.sub('새식구 구인합니다', '동작구 행정복지센터 알루미늄판 트러스 금속공정', title)
-
         # Change detail
         detail = re.sub('old', 'new', detail)
         
-        detail = re.sub('연라바랍니다', '연락바랍니다', detail)
-        detail = re.sub('모심니다', '모십니다', detail)
-        detail = re.sub('쥰전공', '준전공', detail)
-        detail = re.sub('펴자재', '폐자재', detail)
-        detail = re.sub('페자재', '폐자재', detail)
-        detail = re.sub('폐기뮬', '폐기물', detail)
-        detail = re.sub('은폄구', '은평구', detail)
-        detail = re.sub('구이동', '구의동', detail)
-        detail = re.sub('0뷴', '0분', detail)
+        #   '.', ',', '/' 은 '\'를 앞에 붙여주지 않아도 인식하고 처리됨
+        #   특수문자앞에는 꼭 '\*' 이런식으로 '\'붙여야 한다 오류나거나 제대로 인식하지 못한다
+        #   찾는 문자열에서만 ')' 앞에 \ 붙여 '\)' 해주고 고칠 문자열에서는 그냥 ')' 해준다 '\)' 해주면 '\\)' 이런식으로 출력 됨
+        #   괄호 '(' ')' 입력시에는 '\(', '\)' 꼭 이렇게 해줘야 한다. 안그럼 unbalanced parenthesis 에러 or 괄호 인식 못해 제대로 못찾음
+        detail = re.sub(' F4\)\n\n문의', ' F4)', detail)
+        detail = re.sub('동작구행정복지센터 알루미늄판 트러스 금속공정.조공 준기공 기공 구인합니다.출퇴가능 숙식가능입니다.공기는 7월준공 4대보험적용 안전용품지급 합니다.말일결산 익월 15일 급여지급 음주 교포사절합니다.여의치않게 지방에서 올라오시는 분 숙식제공\(단가조정\)합니다.주어진 시간에 성의껏 작업하시면됩니다.책임시공 팀워크 서로배려하면서 안전한 작업지향합니다.15start 숙련도에 따라 단가는 조정 으로 전화 문자주세요\(팀장25 기공20이상 협의사항 준기공18 조공15\) 생각하시면 될듯합니다.', '동작구행정복지센터 알루미늄판 트러스 금속공정\n조공 준기공 기공 구인합니다.\n출퇴가능 숙식가능입니다.\n공기는 7월준공 4대보험적용 안전용품지급 합니다.\n말일결산 익월 15일 급여지급 음주 교포사절합니다.\n여의치않게 지방에서 올라오시는 분 숙식제공(단가조정)합니다.\n주어진 시간에 성의껏 작업하시면됩니다.\n책임시공 팀워크 서로배려하면서 안전한 작업지향합니다.\n15start 숙련도에 따라 단가는 조정 으로 전화 문자주세요\n(팀장25 기공20이상 협의사항 준기공18 조공15)\n생각하시면 될듯합니다.', detail)
+        detail = re.sub('나이 : \*\*\*부터 42까지 \n팀은 젊은층으로 이루어져있으며 평균 \*\*\* 초중반입니다.', '나이 : 팀은 젋은층으로 이루어져있으며 평균 30대 초중반입니다.', detail)
+        detail = re.sub('\n\#조공 \#기공 \#고압 \#준전공 \#전기 \#트레이 \#강제 \#포설  \#전선관 \#풀링\#소방전기 \#가설 \#소방전선관 \#경기도 \#여주 \#포스코', '', detail)
+        detail = re.sub('함께 손맞쳐 재밌게일하실분 어렵게생각마시고전화주세요', '함께 손맞춰 재밌게일하실분\n어렵게생각마시고 전화주세요', detail)
+        detail = re.sub('근무시간 0700 \~ 1600', '근무시간 07:00 ~ 16:00', detail)
+        detail = re.sub('반장님들을기다립니나\~', '반장님들을 기다립니다', detail)
+        detail = re.sub('\n\n담당자 : 안용식부장', '', detail)
+        detail = re.sub('근면성실이', '근면성실히', detail)
+        detail = re.sub('220000원', '22만원', detail)
+        detail = re.sub('old', 'new', detail)
+        detail = re.sub('old', 'new', detail)
         detail = re.sub('old', 'new', detail)
         detail = re.sub('old', 'new', detail)
 
-        detail = re.sub('동작구행정복지센터 알루미늄판 트러스 금속공정.조공 준기공 기공 구인합니다.출퇴가능 숙식가능입니다.공기는 7월준공 4대보험적용 안전용품지급 합니다.말일결산 익월 15일 급여지급 음주 교포사절합니다.여의치않게 지방에서 올라오시는 분 숙식제공\(단가조정\)합니다.주어진 시간에 성의껏 작업하시면됩니다.책임시공 팀워크 서로배려하면서 안전한 작업지향합니다.15start 숙련도에 따라 단가는 조정 으로 전화 문자주세요\(팀장25 기공20이상 협의사항 준기공18 조공15\) 생각하시면 될듯합니다.', '동작구행정복지센터 알루미늄판 트러스 금속공정\n조공 준기공 기공 구인합니다.\n출퇴가능 숙식가능입니다.\n공기는 7월준공 4대보험적용 안전용품지급 합니다.\n말일결산 익월 15일 급여지급 음주 교포사절합니다.\n여의치않게 지방에서 올라오시는 분 숙식제공(단가조정)합니다.\n주어진 시간에 성의껏 작업하시면됩니다.\n책임시공 팀워크 서로배려하면서 안전한 작업지향합니다.\n15start 숙련도에 따라 단가는 조정 으로 전화 문자주세요\n(팀장25 기공20이상 협의사항 준기공18 조공15)\n생각하시면 될듯합니다.', detail)
+        detail = re.sub('old', 'new', detail)
+
         detail = re.sub('\n\n담당자 연락처 \:\n담당자 \: \n부재시 \:', '', detail)
         detail = re.sub('\n연락처 :\n담당자 : 김규동차장', '', detail)
         detail = re.sub('연락처 : 한울 시스템 김팀장 \n', '', detail)
@@ -1121,23 +1468,15 @@ class Recru_It_Spider(scrapy.Spider):
 
         detail = re.sub('old', 'new', detail)
 
-        #   '.', ',', '/' 은 '\'를 앞에 붙여주지 않아도 인식하고 처리됨
-        #   특수문자앞에는 꼭 '\*' 이런식으로 '\'붙여야 한다 오류나거나 제대로 인식하지 못한다
-        #   찾는 문자열에서만 ')' 앞에 \ 붙여 '\)' 해주고 고칠 문자열에서는 그냥 ')' 해준다 '\)' 해주면 '\\)' 이런식으로 출력 됨
-        #   괄호 '(' ')' 입력시에는 '\(', '\)' 꼭 이렇게 해줘야 한다. 안그럼 unbalanced parenthesis 에러 or 괄호 인식 못해 제대로 못찾음
-        detail = re.sub(' F4\)\n\n문의', ' F4)', detail)
-        detail = re.sub('나이 : \*\*\*부터 42까지 \n팀은 젊은층으로 이루어져있으며 평균 \*\*\* 초중반입니다.', '나이 : 팀은 젋은층으로 이루어져있으며 평균 30대 초중반입니다.', detail)
-        detail = re.sub('\n\#조공 \#기공 \#고압 \#준전공 \#전기 \#트레이 \#강제 \#포설  \#전선관 \#풀링\#소방전기 \#가설 \#소방전선관 \#경기도 \#여주 \#포스코', '', detail)
-        detail = re.sub('함께 손맞쳐 재밌게일하실분 어렵게생각마시고전화주세요', '함께 손맞춰 재밌게일하실분\n어렵게생각마시고 전화주세요', detail)
-        detail = re.sub('근무시간 0700 \~ 1600', '근무시간 07:00 ~ 16:00', detail)
-        detail = re.sub('반장님들을기다립니나\~', '반장님들을 기다립니다', detail)
-        detail = re.sub('\n\n담당자 : 안용식부장', '', detail)
-        detail = re.sub('220000원', '22만원', detail)
-        detail = re.sub('old', 'new', detail)
-        detail = re.sub('old', 'new', detail)
-
-        
-        
+        detail = re.sub('연라바랍니다', '연락바랍니다', detail)
+        detail = re.sub('모심니다', '모십니다', detail)
+        detail = re.sub('쥰전공', '준전공', detail)
+        detail = re.sub('펴자재', '폐자재', detail)
+        detail = re.sub('페자재', '폐자재', detail)
+        detail = re.sub('폐기뮬', '폐기물', detail)
+        detail = re.sub('은폄구', '은평구', detail)
+        detail = re.sub('구이동', '구의동', detail)
+        detail = re.sub('0뷴', '0분', detail)
         detail = re.sub('old', 'new', detail)
         detail = re.sub('old', 'new', detail)
 
@@ -1147,8 +1486,9 @@ class Recru_It_Spider(scrapy.Spider):
         # Change pay
         pay = re.sub('old', 'new', pay)
 
-        pay = re.sub('월급 145,000 ~ 145,000원', '월급 145,000원', pay)
-        pay = re.sub('월급 400만 ~ 50만원', '월급 400만 ~ 500만원', pay)
+        pay = re.sub('145,000 ~ 145,000원', '145,000원', pay)
+        pay = re.sub('142,000 ~ 142,000원', '142,000원', pay)
+        pay = re.sub('400만 ~ 50만원', '400만 ~ 500만원', pay)
         pay = re.sub(' ~ 1 원', '원 이상', pay)
         pay = re.sub(' ~ 2 원', '원 이상', pay)
         pay = re.sub(' ~ 00원', '원', pay)
