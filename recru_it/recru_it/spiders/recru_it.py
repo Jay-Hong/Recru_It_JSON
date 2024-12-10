@@ -1390,6 +1390,7 @@ class Recru_It_Spider(scrapy.Spider):
         else:
             imageURL = imageURL_sel.get_attribute('src')
 
+
         # Change title
         title = re.sub('old', 'new', title)
         
@@ -1422,6 +1423,7 @@ class Recru_It_Spider(scrapy.Spider):
         title = re.sub('old', 'new', title)
 
         title = re.sub('old', 'new', title)
+
 
         # Change detail
         detail = re.sub('old', 'new', detail)
@@ -1469,6 +1471,7 @@ class Recru_It_Spider(scrapy.Spider):
         detail = re.sub('old', 'new', detail)
 
         detail = re.sub('연라바랍니다', '연락바랍니다', detail)
+        detail = re.sub('그합니다', '구합니다\n', detail)
         detail = re.sub('모심니다', '모십니다', detail)
         detail = re.sub('쥰전공', '준전공', detail)
         detail = re.sub('펴자재', '폐자재', detail)
