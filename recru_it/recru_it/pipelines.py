@@ -40,19 +40,15 @@ class Recru_It_Pipeline:
             raise DropItem('\n\nDrop 비계/동바리 이면서 협의 (부산, 서울 제외) 🚯 \n')
         elif len(pattern_null.findall(item['site'])) > 0:   # site 에 null 이 들어가면 빼
             raise DropItem('\n\nDrop site : null 🚯\n')
+        elif len(re.compile('채용공고 등록안내').findall(item['title'])) > 0: # tem
+            raise DropItem('\n\nDrop title : 채용공고 등록안내 🚯\n')
         
 
-        elif len(re.compile('010-5126-4877').findall(item['phone'])) > 0: # tem
-            raise DropItem('\n\nDrop phone : 010-5126-4877 🚯\n')
-        
         elif len(re.compile('펀교').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : 펀교 🚯\n')
         
-        elif len(re.compile('이동통신 3사 통신 작업경험').findall(item['title'])) > 0: # tem
-            raise DropItem('\n\nDrop title : 이동통신 3사 통신 작업경험 🚯\n')
-        
-        elif len(re.compile('당일지급 장기현장 2호선 강남역 오피스텔 보통인부').findall(item['title'])) > 0: # tem
-            raise DropItem('\n\nDrop title : 당일지급 장기현장 2호선 강남역 오피스텔 보통인부 🚯\n')
+        elif len(re.compile('YH').findall(item['title'])) > 0: # tem
+            raise DropItem('\n\nDrop title : YH 🚯\n')
         
         elif len(re.compile('전화 하지 마세요 문자 요망').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : 전화 하지 마세요 문자 요망 🚯\n')
@@ -60,11 +56,41 @@ class Recru_It_Pipeline:
         elif len(re.compile('누수탐지 가능자우대').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : 누수탐지 가능자우대 🚯\n')
         
-        elif len(re.compile('YH').findall(item['title'])) > 0: # tem
-            raise DropItem('\n\nDrop title : YH 🚯\n')
+        elif len(re.compile('당일지급 장기현장 2호선 강남역 오피스텔 보통인부').findall(item['title'])) > 0: # tem
+            raise DropItem('\n\nDrop title : 당일지급 장기현장 2호선 강남역 오피스텔 보통인부 🚯\n')
         
-        elif len(re.compile('01 30(02 30) 바로 오실수있는분').findall(item['title'])) > 0: # tem
-            raise DropItem('\n\nDrop title : 01 30(02 30) 바로 오실수있는분 🚯\n')
+        elif len(re.compile('아파트포설팀원모집합니초보경력자다모집합다').findall(item['title'])) > 0: # tem
+            raise DropItem('\n\nDrop title : 아파트포설팀원모집합니초보경력자다모집합다 🚯\n')
+
+        elif len(re.compile('010-5126-4877').findall(item['phone'])) > 0: # tem
+            raise DropItem('\n\nDrop phone : 010-5126-4877 🚯\n')
+        
+        elif len(re.compile('010-4632-0909').findall(item['phone'])) > 0: # tem
+            raise DropItem('\n\nDrop phone : 010-4632-0909 🚯\n')
+
+        
+
+
+        # 양재동 현대자동차 사옥 공사현장 덕트 / 성수동.. (상위 자주 노출 / 인력사무소)  - - - - -
+        # elif len(re.compile('010-9698-8089').findall(item['phone'])) > 0: # tem
+        #     raise DropItem('\n\nDrop phone : 010-9698-8089 🚯\n')
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+        # 아래 전화번호 일정기간 삭제 (25/03/12 이후 삭제) - - - - - - - - - - - - - - - -
+        # elif len(re.compile('010-9419-6686').findall(item['phone'])) > 0: # tem
+        #     raise DropItem('\n\nDrop phone : 010-9419-6686 🚯\n')
+        # elif len(re.compile('010-9125-2908').findall(item['phone'])) > 0: # tem
+        #     raise DropItem('\n\nDrop phone : 010-9125-2908 🚯\n')
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+        # 아래 전화번호 일주일만 삭제 (25/02/21 이후 삭제) - - - - - - - - - - - - - - - -
+        # elif len(re.compile('010-7336-1518').findall(item['phone'])) > 0: # tem
+        #     raise DropItem('\n\nDrop phone : 010-7336-1518 🚯\n')
+        
+        # elif len(re.compile('010-7666-9405').findall(item['phone'])) > 0: # tem
+        #     raise DropItem('\n\nDrop phone : 010-7666-9405 🚯\n')
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
+        
 
         elif len(re.compile('title to drop1').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : title to drop 🚯\n')
@@ -73,8 +99,10 @@ class Recru_It_Pipeline:
         elif len(re.compile('title to drop3').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : title to drop 🚯\n')
         
+
         else:
             return item
+
 
 # 중복제거
 class DuplicatesPipeline:

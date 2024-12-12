@@ -984,6 +984,15 @@ class Recru_It_Spider(scrapy.Spider):
         #         else:
         #             pass
         
+
+        # 2025/02/23 등록 2025/03/12일 해지 ⬅️ 열흘정도 후 삭제 할자
+        # job_item = Recru_It_Item()₩
+        # job_item['title'] = '울산 S-Oil 전기 조공 구함';job_item['site'] = '울산 울주군';job_item['type'] = '전기';job_item['pay'] = '일급 15만원'
+        # job_item['etc1'] = '4대보험';job_item['etc2'] = '출퇴근가능';job_item['etc3'] = ''
+        # job_item['numpeople'] = '0 명';job_item['phone'] = '010-9299-9087';job_item['detail'] = '울산 S-Oil현장 전기 조공구합니다\n문자 주시면 전화드리겠습니다'
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # yield job_item
+
         # 울산 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
@@ -1394,12 +1403,14 @@ class Recru_It_Spider(scrapy.Spider):
         # Change title
         title = re.sub('old', 'new', title)
         
-        title = re.sub('답십리씨젠의료재단사옥 금속// 기공21만원//준기공18만원//출퇴근 공기4개월', '답십리 씨젠의료재단사옥 금속 기공21만원 준기공18만원 공기4개월 출퇴근', title)
+        title = re.sub('가산역디지털단지데이터센터-전기포설전공5명19만부터-숙식4대유-28~45세연장주2회-동반불가', '가산역디지털단지 데이터센터 전기포설전공 19만부터 28~45세 연장주2회', title)
+        title = re.sub('사당역6시30분출발금속준기공1명19만-출4대무-30~55세', '금속 준기공1명 출퇴근 4대무 30~55세 (사당역6시30분출발)', title)
         title = re.sub('\(주급/출퇴\)개봉동타이어뱅크외장판넬작업자모집합니다', '개봉동 타이어뱅크 외장판넬 작업자 모집합니다', title)
         title = re.sub('시스템 동바리 /비계 직원채용 신규자16만 부터', '시스템 동바리/비계 직원채용 신규자16만 부터', title)
-        title = re.sub('새식구 구인합니다', '동작구 행정복지센터 알루미늄판 트러스 금속공정', title)
-        title = re.sub('함께하실분모십니다', '창호, 외장 함께하실분 모십니다', title)
         title = re.sub('강남일원동삼성의료원', '강남 일원동 삼성의료원', title)
+        title = re.sub('상성동 소방전기', '삼성동 소방전기', title)
+        title = re.sub('삼성동준기공', '삼성동 준기공', title)
+        title = re.sub('미국미시건주', '미국 미시건주', title)
         title = re.sub('010 5792 6048', '', title)
         title = re.sub('old', 'new', title)
         title = re.sub('old', 'new', title)
@@ -1409,6 +1420,8 @@ class Recru_It_Spider(scrapy.Spider):
         title = re.sub('old', 'new', title)
 
         title = re.sub('현댕실스테이트', '현대힐스테이트', title)
+        title = re.sub('금속인데리어', '금속인테리어', title)
+        title = re.sub('금속인톄리어', '금속인테리어', title)
         title = re.sub('모심니다', '모십니다', title)
         title = re.sub('끈기잇고', '끈기있고', title)
         title = re.sub('평택고덛', '평택고덕', title)
@@ -1433,16 +1446,30 @@ class Recru_It_Spider(scrapy.Spider):
         #   찾는 문자열에서만 ')' 앞에 \ 붙여 '\)' 해주고 고칠 문자열에서는 그냥 ')' 해준다 '\)' 해주면 '\\)' 이런식으로 출력 됨
         #   괄호 '(' ')' 입력시에는 '\(', '\)' 꼭 이렇게 해줘야 한다. 안그럼 unbalanced parenthesis 에러 or 괄호 인식 못해 제대로 못찾음
         detail = re.sub(' F4\)\n\n문의', ' F4)', detail)
-        detail = re.sub('동작구행정복지센터 알루미늄판 트러스 금속공정.조공 준기공 기공 구인합니다.출퇴가능 숙식가능입니다.공기는 7월준공 4대보험적용 안전용품지급 합니다.말일결산 익월 15일 급여지급 음주 교포사절합니다.여의치않게 지방에서 올라오시는 분 숙식제공\(단가조정\)합니다.주어진 시간에 성의껏 작업하시면됩니다.책임시공 팀워크 서로배려하면서 안전한 작업지향합니다.15start 숙련도에 따라 단가는 조정 으로 전화 문자주세요\(팀장25 기공20이상 협의사항 준기공18 조공15\) 생각하시면 될듯합니다.', '동작구행정복지센터 알루미늄판 트러스 금속공정\n조공 준기공 기공 구인합니다.\n출퇴가능 숙식가능입니다.\n공기는 7월준공 4대보험적용 안전용품지급 합니다.\n말일결산 익월 15일 급여지급 음주 교포사절합니다.\n여의치않게 지방에서 올라오시는 분 숙식제공(단가조정)합니다.\n주어진 시간에 성의껏 작업하시면됩니다.\n책임시공 팀워크 서로배려하면서 안전한 작업지향합니다.\n15start 숙련도에 따라 단가는 조정 으로 전화 문자주세요\n(팀장25 기공20이상 협의사항 준기공18 조공15)\n생각하시면 될듯합니다.', detail)
         detail = re.sub('나이 : \*\*\*부터 42까지 \n팀은 젊은층으로 이루어져있으며 평균 \*\*\* 초중반입니다.', '나이 : 팀은 젋은층으로 이루어져있으며 평균 30대 초중반입니다.', detail)
         detail = re.sub('\n\#조공 \#기공 \#고압 \#준전공 \#전기 \#트레이 \#강제 \#포설  \#전선관 \#풀링\#소방전기 \#가설 \#소방전선관 \#경기도 \#여주 \#포스코', '', detail)
         detail = re.sub('함께 손맞쳐 재밌게일하실분 어렵게생각마시고전화주세요', '함께 손맞춰 재밌게일하실분\n어렵게생각마시고 전화주세요', detail)
         detail = re.sub('근무시간 0700 \~ 1600', '근무시간 07:00 ~ 16:00', detail)
         detail = re.sub('반장님들을기다립니나\~', '반장님들을 기다립니다', detail)
+        detail = re.sub('연락드릴겠읍니다', '연락드리겠습니다', detail)
         detail = re.sub('\n\n담당자 : 안용식부장', '', detail)
+        detail = re.sub('도면 보시보', '도면 보시고', detail)
         detail = re.sub('근면성실이', '근면성실히', detail)
+        detail = re.sub('보내주싱션', '보내주시면', detail)
+        detail = re.sub('\n전화번호 \n', '\n', detail)
         detail = re.sub('220000원', '22만원', detail)
+        detail = re.sub('\n 번으로 ', '\n', detail)
+        
         detail = re.sub('old', 'new', detail)
+        detail = re.sub('old', 'new', detail)
+        detail = re.sub('old', 'new', detail)
+
+        #   ‼️ 본문맨위 ‼️ \n #소개수수료없음 ⬇️
+        detail = re.sub(' *#소개수수료없음\n', '소개수수료 없음', detail)        
+        detail = re.sub(' *‼️ *', '', detail)  # ‼️ 없애기 (" *" : 앞뒤로 빈칸이 없거나 한번이상 반복) - 앞뒤 빈칸있으면 같이 지운다
+        detail = re.sub(' *♦️ *', '', detail)  # ♦️ 없애기 (" *" : 앞뒤로 빈칸이 없거나 한번이상 반복) - 앞뒤 빈칸있으면 같이 지운다
+        detail = re.sub('❤', '', detail)  # ❤ 없애기
+
         detail = re.sub('old', 'new', detail)
         detail = re.sub('old', 'new', detail)
         detail = re.sub('old', 'new', detail)
@@ -1452,17 +1479,19 @@ class Recru_It_Spider(scrapy.Spider):
         detail = re.sub('\n\n담당자 연락처 \:\n담당자 \: \n부재시 \:', '', detail)
         detail = re.sub('\n연락처 :\n담당자 : 김규동차장', '', detail)
         detail = re.sub('연락처 : 한울 시스템 김팀장 \n', '', detail)
+        detail = re.sub('■ 연락처 : (팀장)\n', 'new', detail)
         detail = re.sub('\n연락처 \: \#건설현장', '', detail)
+        detail = re.sub('연락처 : (작성요망)\n', '', detail)
         detail = re.sub('연락처 \: 홍팀장 \n', '', detail)
-        detail = re.sub('\■연락처 \: \n\n', '', detail)
         detail = re.sub('■ 지원 / 연락처\n', '', detail)
+        detail = re.sub('■연락처 \: \n\n', '', detail)
         detail = re.sub('✅ 연락처 \n\n', '', detail)
         detail = re.sub('연락처 \(\)\n', '', detail)
         detail = re.sub('연락처 \:  \n', '', detail)
         detail = re.sub('담당자 \: \n', '', detail)
         detail = re.sub('연락처 \: \n', '', detail)
-        detail = re.sub('연락처 \:\n', '', detail)
         detail = re.sub('연락처\:  \n', '', detail)
+        detail = re.sub('연락처 \:\n', '', detail)
         detail = re.sub('연락처\: \n', '', detail)
         detail = re.sub('연락처\:\n', '', detail)
         detail = re.sub('old', 'new', detail)
@@ -1471,8 +1500,10 @@ class Recru_It_Spider(scrapy.Spider):
         detail = re.sub('old', 'new', detail)
 
         detail = re.sub('연라바랍니다', '연락바랍니다', detail)
-        detail = re.sub('그합니다', '구합니다\n', detail)
+        detail = re.sub(' 그합니다', ' 구합니다', detail)
         detail = re.sub('모심니다', '모십니다', detail)
+        detail = re.sub('입니드', '입니다', detail)
+        detail = re.sub('읍니다', '습니다', detail)
         detail = re.sub('쥰전공', '준전공', detail)
         detail = re.sub('펴자재', '폐자재', detail)
         detail = re.sub('페자재', '폐자재', detail)
@@ -1485,6 +1516,7 @@ class Recru_It_Spider(scrapy.Spider):
 
         detail = re.sub('old', 'new', detail)
 
+# 2025/02/23 등록  "울산 S-Oil" ⬅️ 열흘정도 후 삭제 (3월5일 이후)
 
         # Change pay
         pay = re.sub('old', 'new', pay)
@@ -1499,5 +1531,6 @@ class Recru_It_Spider(scrapy.Spider):
         pay = re.sub('old', 'new', pay)
 
         pay = re.sub('old', 'new', pay)
+
 
         return title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL
