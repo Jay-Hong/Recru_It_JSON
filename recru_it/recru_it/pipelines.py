@@ -53,8 +53,8 @@ class Recru_It_Pipeline:
         elif len(re.compile('전화 하지 마세요 문자 요망').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : 전화 하지 마세요 문자 요망 🚯\n')
         
-        elif len(re.compile('누수탐지 가능자우대').findall(item['title'])) > 0: # tem
-            raise DropItem('\n\nDrop title : 누수탐지 가능자우대 🚯\n')
+        # elif len(re.compile('누수탐지 가능자우대').findall(item['title'])) > 0: # tem
+        #     raise DropItem('\n\nDrop title : 누수탐지 가능자우대 🚯\n')
         
         elif len(re.compile('당일지급 장기현장 2호선 강남역 오피스텔 보통인부').findall(item['title'])) > 0: # tem
             raise DropItem('\n\nDrop title : 당일지급 장기현장 2호선 강남역 오피스텔 보통인부 🚯\n')
@@ -67,6 +67,9 @@ class Recru_It_Pipeline:
         
         elif len(re.compile('010-4632-0909').findall(item['phone'])) > 0: # tem
             raise DropItem('\n\nDrop phone : 010-4632-0909 🚯\n')
+        
+        elif len(re.compile('010-3107-9777').findall(item['phone'])) > 0: # tem
+            raise DropItem('\n\nDrop phone : 010-3107-9777 🚯\n')
 
         
 

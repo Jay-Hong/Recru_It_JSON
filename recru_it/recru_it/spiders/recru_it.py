@@ -985,8 +985,8 @@ class Recru_It_Spider(scrapy.Spider):
         #             pass
         
 
-        # 2025/02/23 등록 2025/03/12일 해지 ⬅️ 열흘정도 후 삭제 할자
-        # job_item = Recru_It_Item()₩
+        # 2025/02/23 등록 2025/03/12일 해지 ⬅️ 열흘정도 후 삭제 하자
+        # job_item = Recru_It_Item()
         # job_item['title'] = '울산 S-Oil 전기 조공 구함';job_item['site'] = '울산 울주군';job_item['type'] = '전기';job_item['pay'] = '일급 15만원'
         # job_item['etc1'] = '4대보험';job_item['etc2'] = '출퇴근가능';job_item['etc3'] = ''
         # job_item['numpeople'] = '0 명';job_item['phone'] = '010-9299-9087';job_item['detail'] = '울산 S-Oil현장 전기 조공구합니다\n문자 주시면 전화드리겠습니다'
@@ -1293,6 +1293,15 @@ class Recru_It_Spider(scrapy.Spider):
         #         else:
         #             pass
 
+        # 2025/04/07 등록 2025/04/16일 해지 ⬅️ 일주일정도 후 삭제 하자
+        # job_item = Recru_It_Item()
+        # job_item['title'] = '[구직] 20대 동바리 포설 전기 곰방 가능';job_item['site'] = '전국';job_item['type'] = '동바리 포설 전기 곰방 등';job_item['pay'] = '협의 후 결정'
+        # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
+        # job_item['numpeople'] = '3 명';job_item['phone'] = '010-2556-1441';job_item['detail'] = '단기로 두달 하고 빠지겠습니다\n하지만 일주일 하고 도망가는 20~30대보다는 일 잘하고 확실하다고 생각합니다\n동바리 포설 전기 개장 곰방 다 해봤습니다\n일 꾸준히 있고 연장야간 풀 가능합니다\n써주십쇼'
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # yield job_item
+
+
         time.sleep(random.randint(3, 30))
         print(f"\n\n\n총 아이템 수 : [{num_of_item}]\n")
         print(f"\nfirst_no_simple : [{first_no_simple}]\n") # 간편지원 아닌 index 출력
@@ -1422,6 +1431,7 @@ class Recru_It_Spider(scrapy.Spider):
         title = re.sub('현댕실스테이트', '현대힐스테이트', title)
         title = re.sub('금속인데리어', '금속인테리어', title)
         title = re.sub('금속인톄리어', '금속인테리어', title)
+        title = re.sub('인테링어', '인테리어', title)
         title = re.sub('모심니다', '모십니다', title)
         title = re.sub('끈기잇고', '끈기있고', title)
         title = re.sub('평택고덛', '평택고덕', title)
@@ -1501,6 +1511,7 @@ class Recru_It_Spider(scrapy.Spider):
 
         detail = re.sub('연라바랍니다', '연락바랍니다', detail)
         detail = re.sub(' 그합니다', ' 구합니다', detail)
+        detail = re.sub('인테링어', '인테리어', detail)
         detail = re.sub('모심니다', '모십니다', detail)
         detail = re.sub('입니드', '입니다', detail)
         detail = re.sub('읍니다', '습니다', detail)
@@ -1516,7 +1527,7 @@ class Recru_It_Spider(scrapy.Spider):
 
         detail = re.sub('old', 'new', detail)
 
-# 2025/02/23 등록  "울산 S-Oil" ⬅️ 열흘정도 후 삭제 (3월5일 이후)
+# 2025/04/07 등록  "20대 구직" ⬅️ 일주일정도 후 삭제 (4월13일 이후)
 
         # Change pay
         pay = re.sub('old', 'new', pay)
