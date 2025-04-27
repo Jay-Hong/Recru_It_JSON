@@ -3,6 +3,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from datetime import date, timedelta
 import re; import time; import random
 from recru_it.items import Recru_It_Item
 #~/Documents/Recru_It_JSON/recru_it/recru_it/spiders/recru_it.py
@@ -187,6 +188,12 @@ class Recru_It_Spider(scrapy.Spider):
         'lang=ko_KR', 'lang=en_US', 'lang=ko_KR', 'lang=ja_JP', 'lang=ko_KR', 'lang=zh-CN', 'lang=ko_KR'
     ]
 
+    one_day = timedelta(days=1)
+    one_week = timedelta(weeks=1)
+    today = date.today()
+    yesterday = today - one_day
+    theday_before_10weeks = today - (10 * one_week)
+
     def __init__(self):
         headlessoptions = webdriver.ChromeOptions()
         headlessoptions.add_argument('headless')
@@ -247,14 +254,14 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['title'] = '';job_item['site'] = '';job_item['type'] = '';job_item['pay'] = ''
         # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '0 명';job_item['phone'] = '';job_item['detail'] = ''
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
         # yield job_item
 
         # job_item = Recru_It_Item()
         # job_item['title'] = '기계설비 기공 조공 모집합니다';job_item['site'] = '경기 평택시';job_item['type'] = '설비';job_item['pay'] = '일급 16만 ~ 20만원'
         # job_item['etc1'] = '숙식제공';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '1 명';job_item['phone'] = '010-6430-7390';job_item['detail'] = '현재 개발중인 평택화양지구 현장입니다.\n현장인근에서 숙식가능하시고(2인1실) 조공,준기공,기공 상관없이 모집합니다\n급여는 협의가능하고 본인의 실력은 가감없이 있는그대로 말씀해주시면 감사하겠습니다\n경력이 짧아도 괜찮으니 성실하게 근속가능하신분 연락부탁드립니다'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
         # yield job_item
 
         # 서울 전체
@@ -265,13 +272,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 서울 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -285,12 +297,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (서울 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -305,12 +317,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (서울 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -321,7 +333,7 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['title'] = 'HM시스템 (시스템동바리/비계 설치및해체 작업) 초보자가능';job_item['site'] = '부산';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 16만원 이상'
         # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
         # job_item['numpeople'] = '상시';job_item['phone'] = '010-8739-1790';job_item['detail'] = '근무요일 : 월/화/수/목/금/토\n- 근무시간 : 07:00 ~ 16:30\n- 근무기간 : 1년이상\n- 급여 : 일급 : 160,000원 (초보 일당 16만원/기능공 협의)\n지원양식\n- 이름 :\n- 생년월일 :\n- 사는곳 :\n- 휴대폰번호 :\n- 경력 :\n- 안전교육이수증(사진) :\n\n문자로 보내주시면 검토후 전화드리도록하겠습니다'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
         # yield job_item
         
         # 부산 전체
@@ -332,13 +344,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 부산 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -352,12 +369,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (부산 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -372,12 +389,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (부산 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -392,13 +409,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경기 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -412,12 +434,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경기 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -432,12 +454,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경기 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -452,13 +474,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 인천 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -472,12 +499,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (인천 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -492,12 +519,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (인천 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -512,13 +539,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 충남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -532,12 +564,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충남 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -552,12 +584,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충남 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -572,13 +604,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 충북 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -592,12 +629,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충북 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -612,12 +649,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (충북 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -632,13 +669,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 대전 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -652,12 +694,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대전 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -672,12 +714,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대전 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -692,13 +734,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 세종 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -712,12 +759,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (세종 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -732,12 +779,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (세종 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -752,13 +799,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -772,12 +824,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전남 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -792,12 +844,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전남 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -812,13 +864,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 광주 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -832,12 +889,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (광주 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -852,12 +909,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (광주 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -872,13 +929,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전북 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -892,12 +954,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전북 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -912,12 +974,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (전북 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -932,13 +994,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -952,12 +1019,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경남 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -972,12 +1039,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경남 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -990,7 +1057,7 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['title'] = '울산 S-Oil 전기 조공 구함';job_item['site'] = '울산 울주군';job_item['type'] = '전기';job_item['pay'] = '일급 15만원'
         # job_item['etc1'] = '4대보험';job_item['etc2'] = '출퇴근가능';job_item['etc3'] = ''
         # job_item['numpeople'] = '0 명';job_item['phone'] = '010-9299-9087';job_item['detail'] = '울산 S-Oil현장 전기 조공구합니다\n문자 주시면 전화드리겠습니다'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
         # yield job_item
 
         # 울산 전체
@@ -1001,13 +1068,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 울산 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -1021,12 +1093,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (울산 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -1041,12 +1113,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (울산 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -1061,13 +1133,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경북 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -1081,12 +1158,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경북 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -1101,12 +1178,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (경북 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -1121,13 +1198,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 대구 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -1141,12 +1223,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대구 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -1161,12 +1243,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (대구 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -1181,13 +1263,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+                    
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 강원 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -1201,12 +1288,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (강원 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -1221,12 +1308,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (강원 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -1241,13 +1328,18 @@ class Recru_It_Spider(scrapy.Spider):
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                    job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                    job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                    yield job_item
+                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
+
+                    updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
+                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
+                    if self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
+                        job_item = Recru_It_Item()
+                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
+                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
+                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
+                        job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
+                        yield job_item
+
                 except Exception as e:
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 그외 ) - - - - - - - - \n\n{e}\n\n")
                 else:
@@ -1261,12 +1353,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 5));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (그외 ⬆️) - - - - - - - - \n\n{e}\n\n")
@@ -1281,12 +1373,12 @@ class Recru_It_Spider(scrapy.Spider):
         #         try:
         #             job_item.location_once_scrolled_into_view
         #             time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)   # time.sleep(1);job_item.click();time.sleep(.5)
-        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+        #             title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_ = self.get_job_detail()
         #             job_item = Recru_It_Item()
         #             job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
         #             job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
         #             job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-        #             job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
+        #             job_item['imageURL'] = imageURL;job_item['time'] = time_;job_item['sponsored'] = ''
         #             yield job_item
         #         except Exception as e:
         #             print(f"\n\n - - - - - - - - 예외처리 됨 !! (그외 ⬇️) - - - - - - - - \n\n{e}\n\n")
@@ -1298,7 +1390,7 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['title'] = '[구직] 20대 동바리 포설 전기 곰방 가능';job_item['site'] = '전국';job_item['type'] = '동바리 포설 전기 곰방 등';job_item['pay'] = '협의 후 결정'
         # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '3 명';job_item['phone'] = '010-2556-1441';job_item['detail'] = '단기로 두달 하고 빠지겠습니다\n하지만 일주일 하고 도망가는 20~30대보다는 일 잘하고 확실하다고 생각합니다\n동바리 포설 전기 개장 곰방 다 해봤습니다\n일 꾸준히 있고 연장야간 풀 가능합니다\n써주십쇼'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
         # yield job_item
 
 
@@ -1407,6 +1499,29 @@ class Recru_It_Spider(scrapy.Spider):
             imageURL = ''
         else:
             imageURL = imageURL_sel.get_attribute('src')
+
+        #  time_sel 에 들어오는 값 들 ⬇️ 2024/04/27현재 기준
+        #  ⓵ "상시 모집"    👉 "02/17" (10주전) <- 오래된거 걸러지게
+        #  ⓶ "38분 전"     👉 "04/27" (오늘)
+        #  ⓷ "6시간 전"     👉 "04/27" (오늘)
+        #  ⓸ "NEW"         👉 "04/26" (어제)
+        #  ⓹ "등록 : 04-24" 👉 "04/24"  형태로 만들어준다
+        #  ⓺ 혹시 모르는 그외  👉 "04/26" (어제) 예상치 못한 값이 들어와도 일단 어제로 세팅해 출력해준다 (웹 스타일 바뀔경우)
+        time_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info div.ft12.RobotoM > div")
+        time_pre = re.sub('', '', time_sel.text)
+
+        if time_pre.find('상시') >= 0:  # ⓵
+            time_pre = str(self.theday_before_10weeks.month) + '/' + str(self.theday_before_10weeks.day)
+        elif time_pre.find('분 전') >= 0 or time_pre.find('시간 전') > 0:  # ⓶ ⓷
+            time_pre = str(self.today.month) + '/' + str(self.today.day)
+        elif time_pre.find('NEW') >= 0:  # ⓸
+            time_pre = str(self.yesterday.month) + '/' + str(self.yesterday.day)
+        elif time_pre.find('등록') >= 0:  # ⓹
+            time_pre = re.sub('등록 : ', '', time_pre)
+            time_pre = re.sub('-', '/', time_pre).lstrip('0')
+        else:  # ⓺
+            time_pre = str(self.yesterday.month) + '/' + str(self.yesterday.day)
+        time_ = re.sub('', '', time_pre)
 
 
         # Change title
@@ -1544,4 +1659,4 @@ class Recru_It_Spider(scrapy.Spider):
         pay = re.sub('old', 'new', pay)
 
 
-        return title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL
+        return title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL, time_
