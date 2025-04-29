@@ -210,7 +210,7 @@ class Recru_It_Spider(scrapy.Spider):
         # ildao_items 가져오기
         ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
 
-        for i in range(random.randint(54, 65)):
+        for i in range(random.randint(47, 59)):
             try:
                 print(f"목록가져오기{i} : {ildao_items[-1].location_once_scrolled_into_view}")
             except Exception as e:
@@ -254,14 +254,14 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['title'] = '';job_item['site'] = '';job_item['type'] = '';job_item['pay'] = ''
         # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '0 명';job_item['phone'] = '';job_item['detail'] = ''
-        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
         # job_item = Recru_It_Item()
         # job_item['title'] = '기계설비 기공 조공 모집합니다';job_item['site'] = '경기 평택시';job_item['type'] = '설비';job_item['pay'] = '일급 16만 ~ 20만원'
         # job_item['etc1'] = '숙식제공';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '1 명';job_item['phone'] = '010-6430-7390';job_item['detail'] = '현재 개발중인 평택화양지구 현장입니다.\n현장인근에서 숙식가능하시고(2인1실) 조공,준기공,기공 상관없이 모집합니다\n급여는 협의가능하고 본인의 실력은 가감없이 있는그대로 말씀해주시면 감사하겠습니다\n경력이 짧아도 괜찮으니 성실하게 근속가능하신분 연락부탁드립니다'
-        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
         # 서울 전체
@@ -596,6 +596,15 @@ class Recru_It_Spider(scrapy.Spider):
         #         else:
         #             pass
         
+
+        # 5/6일 등록 5/20 내리자
+        job_item = Recru_It_Item()
+        job_item['title'] = '청주 시스템동바리 비계 인원모집';job_item['site'] = '충북 청주시';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 17만원 이상'
+        job_item['etc1'] = '숙식제공';job_item['etc2'] = '';job_item['etc3'] = ''
+        job_item['numpeople'] = '0 명';job_item['phone'] = '010-7622-3116';job_item['detail'] = '건설현장 경력 없어도 괜찮으며\n신체건강하신분 모집합니다\n준기공, 기공 도 모집\n\n급여는 월급으로 익월5일 지급\n숙소제공, 가불x 도박x\n\n전화 못받을시 문자 남겨주세요\n'
+        job_item['imageURL'] = '';job_item['time'] = '5/6';job_item['sponsored'] = ''
+        yield job_item
+
         # 충북 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
@@ -1520,8 +1529,8 @@ class Recru_It_Spider(scrapy.Spider):
             time_pre = re.sub('등록 : ', '', time_pre)
             time_pre = re.sub('-', '/', time_pre).lstrip('0')
         else:  # ⓺  GitHub Action 에서 관련값 가져오지 못함으로 이부분만 실행됨 👉 일단 빈칸으로 놔두자
-            # time_pre = str(self.yesterday.month) + '/' + str(self.yesterday.day)
-            time_pre = ''
+            time_pre = str(self.yesterday.month) + '/' + str(self.yesterday.day) # 임시로 실행되도록
+            # time_pre = ''
         time_ = re.sub('', '', time_pre)
 
 
