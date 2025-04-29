@@ -1519,8 +1519,9 @@ class Recru_It_Spider(scrapy.Spider):
         elif time_pre.find('등록') >= 0:  # ⓹
             time_pre = re.sub('등록 : ', '', time_pre)
             time_pre = re.sub('-', '/', time_pre).lstrip('0')
-        else:  # ⓺
-            time_pre = str(self.yesterday.month) + '/' + str(self.yesterday.day)
+        else:  # ⓺  GitHub Action 에서 관련값 가져오지 못함으로 이부분만 실행됨 👉 일단 빈칸으로 놔두자
+            # time_pre = str(self.yesterday.month) + '/' + str(self.yesterday.day)
+            time_pre = ''
         time_ = re.sub('', '', time_pre)
 
 
