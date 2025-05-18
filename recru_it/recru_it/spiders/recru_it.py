@@ -205,12 +205,14 @@ class Recru_It_Spider(scrapy.Spider):
 
     def parse(self, response):
         self.driver.get(response.url)
-        time.sleep(random.randint(2, 7)) # time.sleep(2)
+        time.sleep(random.randint(2, 13)) # time.sleep(2)
 
         # ildao_items 가져오기
         ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
 
-        for i in range(random.randint(47, 59)):
+        # 새벽시간에 조금씩만 가져오자 (가져오는양 봐가면 점점~ 줄여)
+        # for i in range(random.randint(47, 59)):
+        for i in range(random.randint(39, 52)):
             try:
                 print(f"목록가져오기{i} : {ildao_items[-1].location_once_scrolled_into_view}")
             except Exception as e:
@@ -561,7 +563,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -595,7 +597,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -620,7 +622,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -645,7 +647,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -948,6 +950,7 @@ class Recru_It_Spider(scrapy.Spider):
         detail = re.sub('연락처 \:\n', '', detail)
         detail = re.sub('연락처\: \n', '', detail)
         detail = re.sub('연락처\:\n', '', detail)
+        detail = re.sub('\n\n연락 :', '\n', detail)
         detail = re.sub('old', 'new', detail)
         detail = re.sub('old', 'new', detail)
 
@@ -957,6 +960,7 @@ class Recru_It_Spider(scrapy.Spider):
         detail = re.sub(' 그합니다', ' 구합니다', detail)
         detail = re.sub('인테링어', '인테리어', detail)
         detail = re.sub('모심니다', '모십니다', detail)
+        detail = re.sub('아님니다', '아닙니다', detail)
         detail = re.sub('입니드', '입니다', detail)
         detail = re.sub('읍니다', '습니다', detail)
         detail = re.sub('쥰전공', '준전공', detail)

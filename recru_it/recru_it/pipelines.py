@@ -74,6 +74,12 @@ class Recru_It_Pipeline:
         
 
 
+        # 아래 전화번호 일정기간 삭제 (25/07/05 이후 삭제) - - - - - - - - - - - - - - - -
+        # [현장서울아님] - 우리회사는 피씨콘크리트 설치하실분을 모집합니다 (이미지확인) - - - - - - 
+        elif len(re.compile('010-5210-8521').findall(item['phone'])) > 0: # tem
+            raise DropItem('\n\nDrop phone : 010-5210-8521 🚯\n')
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
         # 양재동 현대자동차 사옥 공사현장 덕트 / 성수동.. (상위 자주 노출 / 인력사무소)  - - - - -
         # elif len(re.compile('010-9698-8089').findall(item['phone'])) > 0: # tem
         #     raise DropItem('\n\nDrop phone : 010-9698-8089 🚯\n')
