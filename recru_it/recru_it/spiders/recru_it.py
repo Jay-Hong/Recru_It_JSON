@@ -215,7 +215,7 @@ class Recru_It_Spider(scrapy.Spider):
                 print(f"목록가져오기{i} : {ildao_items[-1].location_once_scrolled_into_view}")
             except Exception as e:
                 print(f"\n\n - - - - - - - - 목록가져오기 예외처리 됨 !! - - - - - - - - \n\n{e}\n\n")
-                time.sleep(random.randint(3, 5))   # time.sleep(2.2)
+                time.sleep(random.randint(3, 6))   # time.sleep(2.2)
             else:
                 time.sleep(random.randint(3, 5))    # time.sleep(2.2)
                 ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
@@ -303,7 +303,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -328,7 +328,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -353,7 +353,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -378,7 +378,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -411,7 +411,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -436,7 +436,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -461,7 +461,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -486,7 +486,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -511,7 +511,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -536,7 +536,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -561,7 +561,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -595,7 +595,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -620,7 +620,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -645,7 +645,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
@@ -695,7 +695,7 @@ class Recru_It_Spider(scrapy.Spider):
             if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1:
                 try:
                     job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
+                    time.sleep(random.randint(1, 7));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
                     title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
                     
                     # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
