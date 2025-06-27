@@ -6,6 +6,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from datetime import date, timedelta
 import re; import time; import random
 from recru_it.items import Recru_It_Item
+
 #~/Documents/Recru_It_JSON/recru_it/recru_it/spiders/recru_it.py
 class Recru_It_Spider(scrapy.Spider):
     name = "recru_it";recru_it = "ecruit";dotdcom = "o.com/r";db = "lda"
@@ -252,20 +253,13 @@ class Recru_It_Spider(scrapy.Spider):
         pattern_16_19 = re.compile('1[6-9]')
         pattern_20_29 = re.compile('2[0-9]')
 
+        # 25/00/00일 등록 25/00/00 내림
         # job_item = Recru_It_Item()
         # job_item['title'] = '';job_item['site'] = '';job_item['type'] = '';job_item['pay'] = ''
         # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '0 명';job_item['phone'] = '';job_item['detail'] = ''
         # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
-
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '기계설비 기공 조공 모집합니다';job_item['site'] = '경기 평택시';job_item['type'] = '설비';job_item['pay'] = '일급 16만 ~ 20만원'
-        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '';job_item['etc3'] = ''
-        # job_item['numpeople'] = '1 명';job_item['phone'] = '010-6430-7390';job_item['detail'] = '현재 개발중인 평택화양지구 현장입니다.\n현장인근에서 숙식가능하시고(2인1실) 조공,준기공,기공 상관없이 모집합니다\n급여는 협의가능하고 본인의 실력은 가감없이 있는그대로 말씀해주시면 감사하겠습니다\n경력이 짧아도 괜찮으니 성실하게 근속가능하신분 연락부탁드립니다'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-
 
         # 경기, 인천, 충북 리스트 450개 까지만 적용 (30번만 리스트 땡겨 가져오는 효과 30x15=450)
         item_limit = 450
@@ -295,11 +289,12 @@ class Recru_It_Spider(scrapy.Spider):
                 else:
                     pass
 
+        # 25/10/27일 등록 25/11/31 내림
         # job_item = Recru_It_Item()
         # job_item['title'] = 'HM시스템 (시스템동바리/비계 설치및해체 작업) 초보자가능';job_item['site'] = '부산';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 16만원 이상'
         # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
         # job_item['numpeople'] = '상시';job_item['phone'] = '010-8739-1790';job_item['detail'] = '근무요일 : 월/화/수/목/금/토\n- 근무시간 : 07:00 ~ 16:30\n- 근무기간 : 1년이상\n- 급여 : 일급 : 160,000원 (초보 일당 16만원/기능공 협의)\n지원양식\n- 이름 :\n- 생년월일 :\n- 사는곳 :\n- 휴대폰번호 :\n- 경력 :\n- 안전교육이수증(사진) :\n\n문자로 보내주시면 검토후 전화드리도록하겠습니다'
-        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
         
         # 부산 전체
@@ -402,12 +397,20 @@ class Recru_It_Spider(scrapy.Spider):
                 else:
                     pass
 
-        # 5/6일 등록 5/18 내림
+        # 25/05/06일 등록 25/05/18 내림
         # job_item = Recru_It_Item()
         # job_item['title'] = '청주 시스템동바리 비계 인원모집';job_item['site'] = '충북 청주시';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 17만원 이상'
         # job_item['etc1'] = '숙식제공';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '0 명';job_item['phone'] = '010-7622-3116';job_item['detail'] = '건설현장 경력 없어도 괜찮으며\n신체건강하신분 모집합니다\n준기공, 기공 도 모집\n\n급여는 월급으로 익월5일 지급\n숙소제공, 가불x 도박x\n\n전화 못받을시 문자 남겨주세요\n'
-        # job_item['imageURL'] = '';job_item['time'] = '5/6';job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # yield job_item
+        
+        # 25/10/14일 등록 25/10/25 내림
+        # job_item = Recru_It_Item()
+        # job_item['title'] = '청주 SK하이닉스 전기포설 조공모집';job_item['site'] = '충북 청주시';job_item['type'] = '전기';job_item['pay'] = '일급 15만 ~ 15.5만원'
+        # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
+        # job_item['numpeople'] = '2 명';job_item['phone'] = '010-8743-3213';job_item['detail'] = '상세내용:\n전기포설팀입니다. 연장근무 많고요 공수 많이 나옵니다.\n조공모집합니다 연락주세요!\n\n근무조건:\n주6일제 근무 일요일휴무.\n20중반에서 40중반 모셔요~~\n'
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
         # 충북 전체
@@ -509,7 +512,7 @@ class Recru_It_Spider(scrapy.Spider):
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전남 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
-
+        
         # 광주 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
@@ -585,15 +588,6 @@ class Recru_It_Spider(scrapy.Spider):
                 else:
                     pass
 
-
-        # 2025/02/23 등록 2025/03/12일 해지 ⬅️ 열흘정도 후 삭제 하자
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '울산 S-Oil 전기 조공 구함';job_item['site'] = '울산 울주군';job_item['type'] = '전기';job_item['pay'] = '일급 15만원'
-        # job_item['etc1'] = '4대보험';job_item['etc2'] = '출퇴근가능';job_item['etc3'] = ''
-        # job_item['numpeople'] = '0 명';job_item['phone'] = '010-9299-9087';job_item['detail'] = '울산 S-Oil현장 전기 조공구합니다\n문자 주시면 전화드리겠습니다'
-        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
-        # yield job_item
-
         # 울산 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
@@ -644,6 +638,14 @@ class Recru_It_Spider(scrapy.Spider):
                 else:
                     pass
 
+        # 25/08/30 등록 25/09/07 내림
+        # job_item = Recru_It_Item()
+        # job_item['title'] = '대구 아파트 통신 공무 구합니다';job_item['site'] = '대구 달서구 상인동';job_item['type'] = '통신';job_item['pay'] = '협의 후 결정'
+        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
+        # job_item['numpeople'] = '1';job_item['phone'] = '010-5485-5420';job_item['detail'] = '아파트 통신공무 구합니다.\n준공은 2028년4월 입니다.\n자격증 소지자 우대 합니다.\n출퇴근 가능자'
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # yield job_item
+        
         # 대구 전체 (부산 해운대구X)
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
@@ -693,6 +695,15 @@ class Recru_It_Spider(scrapy.Spider):
                     print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 강원 ) - - - - - - - - \n\n{e}\n\n")
                 else:
                     pass
+        
+        # 25/07/11 등록 25/07/20 내림
+        # job_item = Recru_It_Item()
+        # job_item['title'] = '춘천 프리미엄빌리지 전기조공구합니다';job_item['site'] = '강원 춘천시 (가평읍근처)';job_item['type'] = '전기';job_item['pay'] = '일급 17만원 이상'
+        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
+        # job_item['numpeople'] = '1';job_item['phone'] = '010-7353-7393';job_item['detail'] = '나이상관없고 전공도가능 전공은 19\n아무것도모르셔도되요\n성실한 가평 춘천분들 땀흘려 돈벌분들 오세요'
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
+        # yield job_item
+
 
         # 그외지역 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
@@ -719,12 +730,12 @@ class Recru_It_Spider(scrapy.Spider):
                 else:
                     pass
 
-        # 2025/04/07 등록 2025/04/16일 해지 ⬅️ 일주일정도 후 삭제 하자
+        # 25/04/07 등록 2025/04/16일 내림
         # job_item = Recru_It_Item()
         # job_item['title'] = '[구직] 20대 동바리 포설 전기 곰방 가능';job_item['site'] = '전국';job_item['type'] = '동바리 포설 전기 곰방 등';job_item['pay'] = '협의 후 결정'
         # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
         # job_item['numpeople'] = '3 명';job_item['phone'] = '010-2556-1441';job_item['detail'] = '단기로 두달 하고 빠지겠습니다\n하지만 일주일 하고 도망가는 20~30대보다는 일 잘하고 확실하다고 생각합니다\n동바리 포설 전기 개장 곰방 다 해봤습니다\n일 꾸준히 있고 연장야간 풀 가능합니다\n써주십쇼'
-        # job_item['imageURL'] = '';job_item['time'] = time_;job_item['sponsored'] = ''
+        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
 
