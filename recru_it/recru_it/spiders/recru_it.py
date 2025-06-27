@@ -266,6 +266,10 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
+
+        # 경기, 인천, 충북 리스트 450개 까지만 적용 (30번만 리스트 땡겨 가져오는 효과 30x15=450)
+        item_limit = 450
+
         # 서울 전체
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(2, 5))   # time.sleep(2)
@@ -327,7 +331,7 @@ class Recru_It_Spider(scrapy.Spider):
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 23))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0:
+            if index < item_limit and index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -352,7 +356,7 @@ class Recru_It_Spider(scrapy.Spider):
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 5))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0:
+            if index < item_limit and index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
@@ -410,7 +414,7 @@ class Recru_It_Spider(scrapy.Spider):
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(3, 7))   # time.sleep(2)
         for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0:
+            if index < item_limit and index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0:
                 try:
                     job_item.location_once_scrolled_into_view
                     time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
