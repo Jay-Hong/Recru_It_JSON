@@ -77,6 +77,9 @@ class Recru_It_Pipeline:
         elif len(re.compile('010-3287-1198').findall(item['phone'])) > 0: # tem
             raise DropItem('\n\nDrop phone : 010-3287-1198 🚯\n')
         
+        elif len(re.compile('010-7558-3993').findall(item['phone'])) > 0: # tem
+            raise DropItem('\n\nDrop phone : 010-3287-1198 🚯\n')
+        
         # 매산시스템 (경기도 광주인데 자꾸 서울에 올림)
         elif len(re.compile('010-8089-0413').findall(item['phone'])) > 0: # tem
             raise DropItem('\n\nDrop phone : 010-8089-0413 🚯\n')

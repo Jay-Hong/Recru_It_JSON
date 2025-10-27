@@ -140,7 +140,7 @@ Recru_It_JSON/
 
 ```python
 CRAWL_CONFIG = {
-    'scroll_range': (39, 52),           # 스크롤 반복 횟수
+    'scroll_range': (50, 53),           # 스크롤 반복 횟수
     'initial_sleep': (2, 13),           # 초기 페이지 로드 대기 시간
 
     'regions': [

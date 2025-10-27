@@ -396,6 +396,7 @@ class Recru_It_Spider(scrapy.Spider):
         detail = re.sub('인테링어', '인테리어', detail)
         detail = re.sub('모심니다', '모십니다', detail)
         detail = re.sub('아님니다', '아닙니다', detail)
+        detail = re.sub('합니딘', '합니다', detail)
         detail = re.sub('입니드', '입니다', detail)
         detail = re.sub('읍니다', '습니다', detail)
         detail = re.sub('쥰전공', '준전공', detail)
