@@ -11,7 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from recru_it.items import Recru_It_Item
 from recru_it.spiders.constants import LANG, USER_AGENTS, WINDOW_SIZES
-from recru_it.settings import CRAWL_CONFIG
+from recru_it.settings import CRAWL_CONFIG, MANUAL_JOBS_BY_REGION
 
 class Recru_It_Spider(scrapy.Spider):
     name = "recru_it";recru_it = "ecruit";dotdcom = "o.com/r";db = "lda"
@@ -61,6 +61,15 @@ class Recru_It_Spider(scrapy.Spider):
         sleep_before = region_config['sleep_before']
         sleep_between = region_config['sleep_between']
 
+        # 1. 먼저 해당 지역의 수동 아이템 추가 (크롤링 결과 맨 앞에 위치)
+        if region_name in MANUAL_JOBS_BY_REGION:
+            for job_data in MANUAL_JOBS_BY_REGION[region_name]:
+                job_item = Recru_It_Item()
+                for key, value in job_data.items():
+                    job_item[key] = value
+                yield job_item
+
+        # 2. 그 다음 크롤링 아이템 추가
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
         time.sleep(random.randint(*sleep_before))
 
@@ -151,21 +160,6 @@ class Recru_It_Spider(scrapy.Spider):
 
         print(f"\nfirst_no_simple : [{first_no_simple}]\n") # 간편지원 아닌 index 출력
 
-        pattern_10_16 = re.compile('1[0-6]')
-        pattern_14_16 = re.compile('1[4-6]')
-        pattern_15_16 = re.compile('1[5-6]')
-
-        pattern_16_19 = re.compile('1[6-9]')
-        pattern_20_29 = re.compile('2[0-9]')
-
-        # 25/00/00일 등록 25/00/00 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '';job_item['site'] = '';job_item['type'] = '';job_item['pay'] = ''
-        # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
-        # job_item['numpeople'] = '0 명';job_item['phone'] = '';job_item['detail'] = ''
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-
         # 지역별 크롤링
         for region_config in CRAWL_CONFIG['regions']:
             yield from self.process_region(
@@ -175,15 +169,6 @@ class Recru_It_Spider(scrapy.Spider):
                 site_text_items,
                 first_no_simple
             )
-
-        # 25/04/07 등록 2025/04/16일 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '[구직] 20대 동바리 포설 전기 곰방 가능';job_item['site'] = '전국';job_item['type'] = '동바리 포설 전기 곰방 등';job_item['pay'] = '협의 후 결정'
-        # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
-        # job_item['numpeople'] = '3 명';job_item['phone'] = '010-2556-1441';job_item['detail'] = '단기로 두달 하고 빠지겠습니다\n하지만 일주일 하고 도망가는 20~30대보다는 일 잘하고 확실하다고 생각합니다\n동바리 포설 전기 개장 곰방 다 해봤습니다\n일 꾸준히 있고 연장야간 풀 가능합니다\n써주십쇼'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-
 
         time.sleep(random.randint(3, 30))
         print(f"\n\n\n총 아이템 수 : [{num_of_item}]\n")
@@ -271,17 +256,7 @@ class Recru_It_Spider(scrapy.Spider):
 
         detail_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info p.ft10.lin_h2")
         detail_pre1 = re.sub('\n\n\n\n+', '\n\n\n', detail_sel.text)
-        # detail_pre2 = re.sub(' *\*\) *', '\n• ', re.sub(' *\*\] *', '\n• ', detail_pre1)) # 특정 소개소 detail 작성 양식 때문에 바꿔줌 '*]타일용접' (나중에 없애도 됨)
-        # detail_pre3 = re.sub(' *\#\)', '◎', re.sub(' *\#\]', '◎', detail_pre2))
-        # detail_pre4 = re.sub(' *\@\)', '◎', re.sub(' *\@\]', '◎', detail_pre3))
-        # detail_pre5 = re.sub('잇', '있',re.sub('업슴', '없음',re.sub('잇슴', '있음', detail_pre4)))
-        # detail_pre6 = re.sub('\n\n\n+', '\n\n',re.sub('//', '/',re.sub('\n {1,9}', '/', detail_pre5)))
-        # if detail_pre6.find('• ') != -1:
-        #     detail = re.sub('', '', detail_pre6)
-        # else:
-        #     detail = re.sub('', '', detail_pre1)
         detail = re.sub('잇', '있',re.sub('업슴', '없음',re.sub('잇슴', '있음', detail_pre1)))
-        # detail = re.sub('', '', detail_pre1)
     
         imageURL_sel = '';imageURL = ''
         try:
@@ -319,7 +294,6 @@ class Recru_It_Spider(scrapy.Spider):
         # Change title
         title = re.sub('old', 'new', title)
         
-        title = re.sub('가산역디지털단지데이터센터-전기포설전공5명19만부터-숙식4대유-28~45세연장주2회-동반불가', '가산역디지털단지 데이터센터 전기포설전공 19만부터 28~45세 연장주2회', title)
         title = re.sub('사당역6시30분출발금속준기공1명19만-출4대무-30~55세', '금속 준기공1명 출퇴근 4대무 30~55세 (사당역6시30분출발)', title)
         title = re.sub('\(주급/출퇴\)개봉동타이어뱅크외장판넬작업자모집합니다', '개봉동 타이어뱅크 외장판넬 작업자 모집합니다', title)
         title = re.sub('시스템 동바리 /비계 직원채용 신규자16만 부터', '시스템 동바리/비계 직원채용 신규자16만 부터', title)
