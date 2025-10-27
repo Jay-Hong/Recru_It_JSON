@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(git -C /Users/jay/Documents/Recru_It_JSON log --oneline -10)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

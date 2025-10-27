@@ -97,3 +97,150 @@ FEED_EXPORT_ENCODING = "utf-8"
 FEED_URI = 'recru_result.json'
 FEED_FORMAT = 'json'
 FEED_EXPORT_INDENT = 4
+
+# 크롤링 설정
+CRAWL_CONFIG = {
+    'scroll_range': (39, 52),           # 스크롤 반복 횟수 (min, max)
+    'initial_sleep': (2, 13),           # 초기 페이지 로드 대기 시간 (초)
+
+    'regions': [
+        {
+            'name': '서울',
+            'keywords': ['서울'],
+            'exclude_keywords': [],
+            'item_limit': None,         # None = 제한 없음
+            'sleep_before': (2, 5),     # 지역 크롤링 전 대기 (초)
+            'sleep_between': (1, 6),    # 각 아이템 클릭 전 대기 (초)
+        },
+        {
+            'name': '부산',
+            'keywords': ['부산'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 17),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '경기',
+            'keywords': ['경기'],
+            'exclude_keywords': [],
+            'item_limit': 450,          # 경기는 450개 제한
+            'sleep_before': (3, 23),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '인천',
+            'keywords': ['인천'],
+            'exclude_keywords': [],
+            'item_limit': 450,          # 인천은 450개 제한
+            'sleep_before': (3, 5),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '충남',
+            'keywords': ['충남'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '충북',
+            'keywords': ['충북'],
+            'exclude_keywords': [],
+            'item_limit': 450,          # 충북은 450개 제한
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '대전',
+            'keywords': ['대전'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '세종',
+            'keywords': ['세종'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '전남',
+            'keywords': ['전남'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 17),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '광주',
+            'keywords': ['광주'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '전북',
+            'keywords': ['전북'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 4),
+        },
+        {
+            'name': '경남',
+            'keywords': ['경남'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 15),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '울산',
+            'keywords': ['울산'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '경북',
+            'keywords': ['경북'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 17),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '대구',
+            'keywords': ['대구'],
+            'exclude_keywords': ['부산'],  # "부산 해운대구" 제외
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 3),
+        },
+        {
+            'name': '강원',
+            'keywords': ['강원'],
+            'exclude_keywords': [],
+            'item_limit': None,
+            'sleep_before': (3, 17),
+            'sleep_between': (1, 6),
+        },
+        {
+            'name': '그외',
+            'keywords': [],  # 빈 리스트 = 나머지 모든 지역
+            'exclude_keywords': ['서울', '부산', '경기', '인천', '충남', '충북',
+                                '대전', '세종', '전남', '광주', '전북', '경남',
+                                '울산', '경북', '대구', '강원'],
+            'item_limit': None,
+            'sleep_before': (3, 7),
+            'sleep_between': (1, 7),
+        },
+    ]
+}

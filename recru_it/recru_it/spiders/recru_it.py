@@ -11,6 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from recru_it.items import Recru_It_Item
 from recru_it.spiders.constants import LANG, USER_AGENTS, WINDOW_SIZES
+from recru_it.settings import CRAWL_CONFIG
 
 class Recru_It_Spider(scrapy.Spider):
     name = "recru_it";recru_it = "ecruit";dotdcom = "o.com/r";db = "lda"
@@ -32,16 +33,92 @@ class Recru_It_Spider(scrapy.Spider):
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=headlessoptions)
         # self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
+    def _matches_region(self, site_text, keywords, exclude_keywords):
+        """지역이 키워드와 매칭되는지 확인"""
+        # 제외 키워드 체크 (예: 대구 검색 시 "부산 해운대구" 제외)
+        for exclude in exclude_keywords:
+            if site_text.find(exclude) >= 0:
+                return False
+
+        # 키워드가 비어있으면 (그외 지역) True
+        if not keywords:
+            return True
+
+        # 키워드 매칭
+        for keyword in keywords:
+            if site_text.find(keyword) >= 0:
+                return True
+
+        return False
+
+    def process_region(self, region_config, ildao_items, simple_text_items,
+                       site_text_items, first_no_simple):
+        """특정 지역의 아이템들을 크롤링하는 공통 함수"""
+        region_name = region_config['name']
+        keywords = region_config['keywords']
+        exclude_keywords = region_config.get('exclude_keywords', [])
+        item_limit = region_config.get('item_limit', None)
+        sleep_before = region_config['sleep_before']
+        sleep_between = region_config['sleep_between']
+
+        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+        time.sleep(random.randint(*sleep_before))
+
+        for index, job_item in enumerate(ildao_items):
+            # 제한 조건 체크
+            if item_limit and index >= item_limit:
+                continue
+            if index < first_no_simple:
+                continue
+            if simple_text_items[index].find('간편지원') != -1:
+                continue
+
+            # 지역 필터링
+            if not self._matches_region(site_text_items[index], keywords, exclude_keywords):
+                continue
+
+            try:
+                job_item.location_once_scrolled_into_view
+                time.sleep(random.randint(*sleep_between))
+                job_item.click()
+                time.sleep(.5)
+
+                title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
+
+                if True:
+                    job_item = Recru_It_Item()
+                    job_item['title'] = title
+                    job_item['site'] = site
+                    job_item['type'] = type
+                    job_item['pay'] = pay
+                    job_item['etc1'] = etc1
+                    job_item['etc2'] = etc2
+                    job_item['etc3'] = etc3
+                    job_item['numpeople'] = numpeople
+                    job_item['phone'] = phone
+                    job_item['detail'] = detail
+                    job_item['imageURL'] = imageURL
+                    job_item['time'] = ''
+                    job_item['sponsored'] = ''
+                    yield job_item
+
+            except Exception as e:
+                print(f"\n\n - - - - - - - - 예외처리 됨 !! ( {region_name} ) - - - - - - - - \n\n{e}\n\n")
+
     def parse(self, response):
+        # 설정 값 가져오기
+        scroll_range = CRAWL_CONFIG['scroll_range']
+        initial_sleep = CRAWL_CONFIG['initial_sleep']
+
         self.driver.get(response.url)
-        time.sleep(random.randint(2, 13)) # time.sleep(2)
+        time.sleep(random.randint(*initial_sleep))
 
         # ildao_items 가져오기
         ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
 
         # 새벽시간에 조금씩만 가져오자 (가져오는양 봐가면 점점~ 줄여)
         # for i in range(random.randint(47, 59)):
-        for i in range(random.randint(39, 52)):
+        for i in range(random.randint(*scroll_range)):
             try:
                 print(f"목록가져오기{i} : {ildao_items[-1].location_once_scrolled_into_view}")
             except Exception as e:
@@ -89,474 +166,15 @@ class Recru_It_Spider(scrapy.Spider):
         # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
         # yield job_item
 
-        # 경기, 인천, 충북 리스트 450개 까지만 적용 (30번만 리스트 땡겨 가져오는 효과 30x15=450)
-        item_limit = 450
-
-        # 서울 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(2, 5))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 서울 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 25/10/27일 등록 25/11/31 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = 'HM시스템 (시스템동바리/비계 설치및해체 작업) 초보자가능';job_item['site'] = '부산';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 16만원 이상'
-        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
-        # job_item['numpeople'] = '상시';job_item['phone'] = '010-8739-1790';job_item['detail'] = '근무요일 : 월/화/수/목/금/토\n- 근무시간 : 07:00 ~ 16:30\n- 근무기간 : 1년이상\n- 급여 : 일급 : 160,000원 (초보 일당 16만원/기능공 협의)\n지원양식\n- 이름 :\n- 생년월일 :\n- 사는곳 :\n- 휴대폰번호 :\n- 경력 :\n- 안전교육이수증(사진) :\n\n문자로 보내주시면 검토후 전화드리도록하겠습니다'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-        
-        # 부산 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 17))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('부산') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 부산 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 경기 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 23))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index < item_limit and index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경기') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경기 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 인천 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 5))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index < item_limit and index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('인천') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 인천 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 충남 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충남') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 충남 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 25/05/06일 등록 25/05/18 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '청주 시스템동바리 비계 인원모집';job_item['site'] = '충북 청주시';job_item['type'] = '비계/동바리';job_item['pay'] = '일급 17만원 이상'
-        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '';job_item['etc3'] = ''
-        # job_item['numpeople'] = '0 명';job_item['phone'] = '010-7622-3116';job_item['detail'] = '건설현장 경력 없어도 괜찮으며\n신체건강하신분 모집합니다\n준기공, 기공 도 모집\n\n급여는 월급으로 익월5일 지급\n숙소제공, 가불x 도박x\n\n전화 못받을시 문자 남겨주세요\n'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-        
-        # 25/10/14일 등록 25/10/25 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '청주 SK하이닉스 전기포설 조공모집';job_item['site'] = '충북 청주시';job_item['type'] = '전기';job_item['pay'] = '일급 15만 ~ 15.5만원'
-        # job_item['etc1'] = '';job_item['etc2'] = '';job_item['etc3'] = ''
-        # job_item['numpeople'] = '2 명';job_item['phone'] = '010-8743-3213';job_item['detail'] = '상세내용:\n전기포설팀입니다. 연장근무 많고요 공수 많이 나옵니다.\n조공모집합니다 연락주세요!\n\n근무조건:\n주6일제 근무 일요일휴무.\n20중반에서 40중반 모셔요~~\n'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-
-        # 충북 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index < item_limit and index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('충북') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 충북 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 대전 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대전') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 대전 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 세종 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('세종') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 세종 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 전남 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 17))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전남') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전남 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-        
-        # 광주 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('광주') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 광주 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 전북 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('전북') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 4));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 전북 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 경남 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 15))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경남') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경남 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 울산 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('울산') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 울산 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 경북 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 17))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('경북') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 경북 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 25/08/30 등록 25/09/07 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '대구 아파트 통신 공무 구합니다';job_item['site'] = '대구 달서구 상인동';job_item['type'] = '통신';job_item['pay'] = '협의 후 결정'
-        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
-        # job_item['numpeople'] = '1';job_item['phone'] = '010-5485-5420';job_item['detail'] = '아파트 통신공무 구합니다.\n준공은 2028년4월 입니다.\n자격증 소지자 우대 합니다.\n출퇴근 가능자'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-        
-        # 대구 전체 (부산 해운대구X)
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('대구') >= 0 and site_text_items[index].find('부산') == -1:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 3));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 대구 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-
-        # 강원 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 17))   # time.sleep(2)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('강원') >= 0:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 6));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 강원 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
-        
-        # 25/07/11 등록 25/07/20 내림
-        # job_item = Recru_It_Item()
-        # job_item['title'] = '춘천 프리미엄빌리지 전기조공구합니다';job_item['site'] = '강원 춘천시 (가평읍근처)';job_item['type'] = '전기';job_item['pay'] = '일급 17만원 이상'
-        # job_item['etc1'] = '숙식제공';job_item['etc2'] = '4대보험';job_item['etc3'] = '장기근무'
-        # job_item['numpeople'] = '1';job_item['phone'] = '010-7353-7393';job_item['detail'] = '나이상관없고 전공도가능 전공은 19\n아무것도모르셔도되요\n성실한 가평 춘천분들 땀흘려 돈벌분들 오세요'
-        # job_item['imageURL'] = '';job_item['time'] = '';job_item['sponsored'] = ''
-        # yield job_item
-
-
-        # 그외지역 전체
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(3, 7))   # time.sleep(3)
-        for index, job_item in enumerate(ildao_items):
-            if index >= first_no_simple and simple_text_items[index].find('간편지원') == -1 and site_text_items[index].find('서울') == -1 and site_text_items[index].find('부산') == -1 and site_text_items[index].find('경기') == -1 and site_text_items[index].find('인천') == -1 and site_text_items[index].find('충남') == -1 and site_text_items[index].find('충북') == -1 and site_text_items[index].find('대전') == -1 and site_text_items[index].find('세종') == -1 and site_text_items[index].find('전남') == -1 and site_text_items[index].find('광주') == -1 and site_text_items[index].find('전북') == -1 and site_text_items[index].find('경남') == -1 and site_text_items[index].find('울산') == -1 and site_text_items[index].find('경북') == -1 and site_text_items[index].find('대구') == -1 and site_text_items[index].find('강원') == -1:
-                try:
-                    job_item.location_once_scrolled_into_view
-                    time.sleep(random.randint(1, 7));job_item.click();time.sleep(.5)  # time.sleep(1);job_item.click();time.sleep(.5)
-                    title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-                    
-                    # updated_day = date(2025, int(time_.split('/')[0]), int(time_.split('/')[1]))
-                    # 2주 이내 공고 만 and 오늘 날짜 이전 공고(가끔 년도없는 작년 공고도 있음)
-                    if True: #self.today <= (updated_day + (2 * self.one_week)) and self.today >= updated_day:
-                        job_item = Recru_It_Item()
-                        job_item['title'] = title;job_item['site'] = site;job_item['type'] = type;job_item['pay'] = pay
-                        job_item['etc1'] = etc1;job_item['etc2'] = etc2;job_item['etc3'] = etc3 #print(etc_set)
-                        job_item['numpeople'] = numpeople;job_item['phone'] = phone;job_item['detail'] = detail
-                        job_item['imageURL'] = imageURL;job_item['time'] = '';job_item['sponsored'] = ''
-                        yield job_item
-
-                except Exception as e:
-                    print(f"\n\n - - - - - - - - 예외처리 됨 !! ( 그외 ) - - - - - - - - \n\n{e}\n\n")
-                else:
-                    pass
+        # 지역별 크롤링
+        for region_config in CRAWL_CONFIG['regions']:
+            yield from self.process_region(
+                region_config,
+                ildao_items,
+                simple_text_items,
+                site_text_items,
+                first_no_simple
+            )
 
         # 25/04/07 등록 2025/04/16일 내림
         # job_item = Recru_It_Item()
