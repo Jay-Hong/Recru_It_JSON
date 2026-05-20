@@ -10,8 +10,8 @@ import re
 ob = '오'
 dab = '다'
 ilb = '일'
-pattern_day10_13 = re.compile('일급 1[0-3]')
-pattern_month10_13 = re.compile('월급 1[0-3]')
+pattern_day10_14 = re.compile('일급 1[0-4]')
+pattern_month10_14 = re.compile('월급 1[0-4]')
 pattern_odail = re.compile(ilb+dab+ob)
 pattern_day10_15 = re.compile('일급 1[0-5]')
 pattern_month10_15 = re.compile('월급 1[0-5]')
@@ -21,10 +21,10 @@ pattern_null = re.compile('null')
 
 class Recru_It_Pipeline:
     def process_item(self, item, spider):
-        if len(pattern_day10_13.findall(item['pay'])) > 0:  # '일급 10 ~ 13' 들어가면 다 뺌
-            raise DropItem('\n\nDrop 일급 10 ~ 13 ! 🚯\n')
-        elif len(pattern_month10_13.findall(item['pay'])) > 0:  # '월급 10 ~ 13' 들어가면 다 뺌
-            raise DropItem('\n\nDrop 월급 10 ~ 13 ! 🚯\n')
+        if len(pattern_day10_14.findall(item['pay'])) > 0:  # '일급 10 ~ 14' 들어가면 다 뺌
+            raise DropItem('\n\nDrop 일급 10 ~ 14 ! 🚯\n')
+        elif len(pattern_month10_14.findall(item['pay'])) > 0:  # '월급 10 ~ 14' 들어가면 다 뺌
+            raise DropItem('\n\nDrop 월급 10 ~ 14 ! 🚯\n')
         # elif item['title'].find('155555') != -1:    # str.find('문자열') 찾았으면 0 ~ 찾은 첫번째 인댁스 / 못찾았으면 -1 반환
         elif len(pattern_odail.findall(item['title'])) > 0: # 바로위 주석부분과 같은기능
             raise DropItem('\n\nDrop detail : 155555 🚯\n')
@@ -34,6 +34,10 @@ class Recru_It_Pipeline:
             raise DropItem('\n\nDrop detail : 27자 미만 🚯\n')
         elif len(item['title']) < 6: # title 6자 미만은 빼
             raise DropItem('\n\nDrop title : 6자 미만 🚯\n')
+        elif len(item['title']) >= 72: # title 72자 이상은 빼 (단말기 표시 한계)
+            raise DropItem('\n\nDrop title : 72자 이상 🚯\n')
+        elif len(item['detail']) > 1800: # detail 1800자 초과는 빼 (단말기 로드 지연 방지)
+            raise DropItem('\n\nDrop detail : 1800자 초과 🚯\n')
         elif (len(pattern_day10_15.findall(item['pay'])) > 0 or len(pattern_month10_15.findall(item['pay'])) > 0) and len(pattern_system.findall(item['type'])) > 0 and item['site'].find('부산') == -1 and item['site'].find('서울') == -1:
             raise DropItem('\n\nDrop 비계/동바리 이면서 단가 15이하 (부산, 서울 제외) 🚯\n')
         elif len(pattern_nego.findall(item['pay'])) > 0 and len(pattern_system.findall(item['type'])) > 0 and item['site'].find('부산') == -1 and item['site'].find('서울') == -1:
