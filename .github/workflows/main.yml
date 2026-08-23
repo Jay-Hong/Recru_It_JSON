@@ -38,7 +38,6 @@ jobs:
         pwd
         ls -al
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        python3 -m pip install "pyOpenSSL==24.2.1" "cryptography==43.0.3"
     - name: Execution
       run: |
         pwd
