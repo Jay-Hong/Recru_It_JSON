@@ -1,0 +1,230 @@
+/* Read-only observations. No request headers, bodies, or click behavior are changed. */
+(() => {
+  if (window.__recruObserver) return;
+  const DETAIL = '/web/Jobinfo/getBoardJobDetail';
+  const LIST = '/web/Jobinfo/getJobBoardList';
+  const selectors = {
+    title: '#detail_info div.ft5.NotoSansM',
+    site: 'div.time.ft11.col_gra04.NotoSansL',
+    type: '#detail_info div.ft11 div.ft10',
+    pay: '#detail_info div.col_blu02.ft10 > div',
+    etcs: '#detail_info div.ft11.col_blu02',
+    people: "#detail_info div.ft11 div.ft10[style='display: flex;']",
+    phone: '#detail_info div.ft11 div.ft10.RobotoM',
+    detail: '#detail_info p.ft10.lin_h2',
+    imageURL: '#detail_info > div > div > div > div > img'
+  };
+  const multi = new Set(['etcs', 'people']);
+  const requests = [];
+  let attempt = null, sequence = 0, diagnosticErrors = 0, cachedVue = null;
+  const vue = () => {
+    const list = document.querySelector('.scrollsection');
+    if (cachedVue && !cachedVue._isDestroyed && cachedVue.$el.contains(list)) return cachedVue;
+    const seen = new Set();
+    const find = vm => {
+      if (!vm || seen.has(vm)) return null;
+      seen.add(vm);
+      if ('recuitDetail' in vm && vm.$el.contains(list)) return vm;
+      for (const child of vm.$children || []) { const found = find(child); if (found) return found; }
+      return null;
+    };
+    // A wrapper component can replace $el.__vue__ after scrolling; search the
+    // owning component tree as well as the DOM ancestors.
+    for (let el = list; el; el = el.parentElement) {
+      const found = find(el.__vue__);
+      if (found) { cachedVue = found; return found; }
+    }
+    throw Error('detail_model_unavailable');
+  };
+  const text = value => String(value == null ? '' : value);
+  const canonical = value => text(value).replace(/[\u200b\u200e\u200f]/g, '').replace(/\s+/g, ' ').trim();
+  const trim = value => value.replace(/^[^\S\u00a0]+|[^\S\u00a0]+$/g, '');
+  const rendered = root => {
+    // Match WebDriver's block/text-node whitespace rules for this site's simple
+    // DOM. In particular, a newline INSIDE one text node is not a block boundary.
+    // Reference: Selenium javascript/atoms/dom.js getVisibleText (Apache-2.0).
+    // Every saved value is also checked against the installed driver's .text.
+    const lines = [''];
+    const inline = new Set(['inline', 'inline-block', 'inline-table', 'none', 'table-cell', 'table-column', 'table-column-group']);
+    const last = () => lines[lines.length - 1];
+    const nonempty = () => /\S/.test(last());
+    const visit = el => {
+      const style = getComputedStyle(el);
+      if (style.display === 'none') return;
+      if (el.tagName === 'BR') { lines.push(''); return; }
+      const cell = el.tagName === 'TD' || style.display === 'table-cell';
+      const block = !cell && !inline.has(style.display);
+      const previous = el.previousElementSibling;
+      const followsRunIn = previous && getComputedStyle(previous).display === 'run-in' && style.cssFloat === 'none';
+      if (block && !followsRunIn && nonempty()) lines.push('');
+      const shown = window.__recruDisplayed(el, false);
+      for (const node of el.childNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) { visit(node); continue; }
+        if (node.nodeType !== Node.TEXT_NODE || !shown) continue;
+        let value = node.nodeValue.replace(/[\u200b\u200e\u200f]/g, '').replace(/\r\n|\r/g, '\n');
+        if (['normal', 'nowrap'].includes(style.whiteSpace)) value = value.replaceAll('\n', ' ');
+        value = ['pre', 'pre-wrap'].includes(style.whiteSpace)
+          ? value.replace(/[ \f\t\v\u2028\u2029]/g, '\u00a0')
+          : value.replace(/[ \f\t\v\u2028\u2029]+/g, ' ');
+        if (style.textTransform === 'uppercase') value = value.toUpperCase();
+        else if (style.textTransform === 'lowercase') value = value.toLowerCase();
+        else if (style.textTransform !== 'none') throw Error('unsupported_text_transform');
+        if (last().endsWith(' ') && value.startsWith(' ')) value = value.slice(1);
+        lines[lines.length - 1] += value;
+      }
+      if (cell && last() && !last().endsWith(' ')) lines[lines.length - 1] += ' ';
+      if (block && style.display !== 'run-in' && nonempty()) lines.push('');
+    };
+    visit(root);
+    return trim(lines.map(trim).join('\n')).replace(/\u00a0/g, ' ');
+  };
+  const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const urlKey = value => {
+    const url = new URL(value, document.baseURI);
+    // Decode path segments individually: encoded slashes must not change identity.
+    return JSON.stringify([url.origin, url.pathname.split('/').map(decodeURIComponent), url.search, url.hash]);
+  };
+  const cards = () => {
+    const vm = vue(), nodes = [...document.querySelectorAll('div.scrollsection > div.box.pointer')];
+    const nodeSet = new Set(nodes), records = new Map();
+    // Resolve each card through its Vue render key, not a positional zip of columns.
+    const visit = vnode => {
+      if (!vnode) return;
+      const match = /^(normalRecruList|emergenRecruList)(\d+)$/.exec(text(vnode.key));
+      const emergency = Number.isInteger(vnode.key) && vnode.key >= 0;
+      if ((match || emergency) && nodeSet.has(vnode.elm)) {
+        if (records.has(vnode.elm)) throw Error('duplicate_card_identity');
+        records.set(vnode.elm, match ? vm[match[1]][Number(match[2])] : vm.emergenRecruList[vnode.key]);
+      }
+      (vnode.children || []).forEach(visit);
+    };
+    visit(vm._vnode);
+    return nodes.map(node => {
+      const record = records.get(node);
+      if (!record || !record.idx) throw Error('card_identity_unavailable');
+      return {node, record};
+    });
+  };
+  function snapshot() {
+    if (!attempt || attempt.clicked === null) return {ok: false, reason: 'click_not_observed'};
+    const own = requests.filter(r => r.attempt === attempt.number && r.kind === 'detail');
+    if (own.some(r => [429, 503].includes(r.status))) return {ok: false, reason: 'source_unavailable'};
+    const vm = vue(), model = vm.recuitDetail;
+    if (!model || model === attempt.previous || text(model.idx) !== attempt.id) return {ok: false, reason: 'identity'};
+    // An unfinished earlier request could overwrite the same ID during a retry.
+    if (requests.some(r => r.kind === 'detail' && !r.done)) return {ok: false, reason: 'request_pending'};
+    if (own.length !== 1 || own[0].status !== 200) return {ok: false, reason: 'request_evidence'};
+    const raw = {}, semantic = {};
+    for (const [key, selector] of Object.entries(selectors)) {
+      const elements = [...document.querySelectorAll(selector)];
+      if (key === 'imageURL') {
+        if (elements.length > 1) return {ok: false, reason: 'image_count'};
+        raw[key] = elements.length ? elements[0].src : '';
+      } else if (multi.has(key)) {
+        raw[key] = elements.map(rendered);
+        semantic[key] = elements.map(el => canonical(el.textContent));
+      } else {
+        if (!elements.length) return {ok: false, reason: 'missing_' + key};
+        raw[key] = rendered(elements[0]);
+        semantic[key] = canonical(elements[0].textContent);
+      }
+    }
+    const labels = {1: '일급', 2: '주급', 3: '월급'};
+    const expected = {
+      title: canonical(model.title),
+      site: canonical('location_on ' + text(model.locNm) + ' ' + text(model.locDetailNm)),
+      type: canonical(text(model.cateNm).replaceAll(',', ', ')),
+      pay: canonical(labels[model.priceDiv] ? labels[model.priceDiv] + text(model.pricepub) : '협의 후 결정'),
+      phone: canonical(model.phone), detail: canonical(model.content),
+      etcs: [model.sex === 'M' ? '남성' : model.sex === 'F' ? '여성' : '성별 무관'],
+      people: []
+    };
+    for (const values of [model.completlist, model.workcatelist]) {
+      if (values) values.forEach((value, index) => expected.etcs.push(canonical(value + (index < values.length - 1 ? ',' : ''))));
+    }
+    let gongs = [];
+    if (model.workDiv === '99') gongs = model.gongDiv;
+    else if (model.gongDiv === '99') gongs = model.workDiv;
+    if (!Array.isArray(gongs)) return {ok: false, reason: 'people_model'};
+    gongs.forEach((gong, index) => expected.people.push(canonical(
+      (['초보', '조공', '준공', '기공'][gong] || '') +
+      (model.workDiv === '99' ? ' ' : '') + text(model.workNum[gong]) + '명' + (index < gongs.length - 1 ? ' / ' : '')
+    )));
+    expected.people.push(canonical(model.manager));
+    const mismatches = Object.keys(expected).filter(key => !equal(semantic[key], expected[key]));
+    const expectedImage = vm.$global.isEmpty(model.recuritImg) ? '' : vm.$config.getS3Prefix() + '/' + model.recuritImg;
+    if ((!expectedImage !== !raw.imageURL) || (expectedImage && urlKey(expectedImage) !== urlKey(raw.imageURL))) mismatches.push('imageURL');
+    if (mismatches.length) return {ok: false, reason: 'fields', mismatches};
+    return {ok: true, raw, attempt: attempt.number, requestSequence: own[0].sequence};
+  }
+  function observeReady() {
+    if (!attempt || attempt.clicked === null || attempt.ready !== null) return;
+    try {
+      if (snapshot().ok) attempt.ready = performance.now();
+    } catch (_) { diagnosticErrors++; }
+  }
+  const open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
+  const info = new WeakMap();
+  XMLHttpRequest.prototype.open = function(method, url, ...args) {
+    info.set(this, {method, path: new URL(url, document.baseURI).pathname});
+    return open.call(this, method, url, ...args);
+  };
+  XMLHttpRequest.prototype.send = function(...args) {
+    const metadata = info.get(this), xhr = this;
+    if (!metadata || ![DETAIL, LIST].includes(metadata.path)) return send.apply(this, args);
+    let id = '';
+    try { id = text(JSON.parse(args[0]).idx); } catch (_) { /* List requests do not need an ID. */ }
+    const record = {sequence: ++sequence, kind: metadata.path === DETAIL ? 'detail' : 'list',
+      attempt: attempt && attempt.clicked !== null && id === attempt.id ? attempt.number : null,
+      started: performance.now(), done: false, status: null};
+    requests.push(record);
+    xhr.addEventListener('loadend', () => {
+      record.done = true; record.status = xhr.status; record.finished = performance.now();
+      observeReady();
+    }, {once: true});
+    // The name appears in CDP's initiator stack, linking a request without adding
+    // headers or comparing the browser clock with CDP's monotonic clock.
+    const name = 'recru_request_' + record.sequence;
+    const call = {[name]() { return send.apply(xhr, args); }};
+    return call[name]();
+  };
+  document.addEventListener('click', event => {
+    if (attempt && attempt.card.contains(event.target) && attempt.clicked === null) {
+      attempt.clicked = performance.now();
+    }
+  }, true);
+  new MutationObserver(observeReady).observe(document, {subtree: true, childList: true, characterData: true, attributes: true});
+  window.__recruObserver = {
+    selectors,
+    unavailable() { return requests.some(r => [429, 503].includes(r.status)); },
+    health() {
+      try {
+        vue();
+        return {available: true, pendingDetail: requests.some(r => r.kind === 'detail' && !r.done)};
+      } catch (_) { return {available: false}; }
+    },
+    arm(card, number) {
+      if (requests.some(r => r.kind === 'detail' && !r.done)) throw Error('previous_detail_pending');
+      const match = cards().find(entry => entry.node === card);
+      if (!match) throw Error('card_identity_unavailable');
+      attempt = {number, id: text(match.record.idx), card, previous: vue().recuitDetail, clicked: null, ready: null};
+      return true;
+    },
+    snapshot,
+    summary(number = attempt && attempt.number) {
+      // Return only this attempt. The complete history stays in the page for
+      // pending-request/status checks, not in every WebDriver response.
+      return {diagnosticErrors, requests: requests.filter(r => r.attempt === number).map(r => ({...r})),
+        attempt: attempt ? {number: attempt.number, clicked: attempt.clicked, ready: attempt.ready,
+          readySeconds: attempt.ready === null ? null : (attempt.ready - attempt.clicked) / 1000} : null};
+    },
+    overview() {
+      return {userAgent: navigator.userAgent, cards: cards().map(({node, record}) => ({
+        simple: rendered(node.querySelector('div.scrap_wrap.ft12.col_ora01')).split('\n')[0],
+        site: rendered(node.querySelector('div.sub_info.foot div.ft12')).replaceAll('\n', '').replace('location_on', ''),
+        pay: rendered(node.querySelector('div.sub_info.foot > div > div')),
+        priceDiv: text(record.priceDiv)
+      }))};
+    }
+  };
+})();

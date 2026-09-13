@@ -1,17 +1,25 @@
 #~/Documents/Recru_It_JSON/recru_it/recru_it/spiders/recru_it.py
 
 from datetime import date, timedelta
-import random, re, scrapy, time
+import random
+import re
+import time
 
+import scrapy
 from selenium import webdriver
+from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from recru_it.items import Recru_It_Item
-from recru_it.spiders.constants import LANG, USER_AGENTS, WINDOW_SIZES
+from recru_it.observation import (
+    EvidenceUnavailable, FormatMismatch, Observation, ObservationUnavailable,
+    ServerUnavailable, VerificationError, quiet_browser_logging,
+)
 from recru_it.settings import CRAWL_CONFIG, MANUAL_JOBS_BY_REGION
+from recru_it.spiders.constants import LANG, USER_AGENTS, WINDOW_SIZES
 
 class Recru_It_Spider(scrapy.Spider):
     name = "recru_it";recru_it = "ecruit";dotdcom = "o.com/r";db = "lda"
@@ -25,13 +33,43 @@ class Recru_It_Spider(scrapy.Spider):
     theday_before_10weeks = today - (10 * one_week)
 
     def __init__(self):
+        quiet_browser_logging()
         headlessoptions = webdriver.ChromeOptions()
         headlessoptions.add_argument('headless')
         headlessoptions.add_argument(random.choice(LANG))
         headlessoptions.add_argument(random.choice(WINDOW_SIZES))
         headlessoptions.add_argument(f"User-Agent: {random.choice(USER_AGENTS)}")
+        headlessoptions.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=headlessoptions)
+        self.observation = Observation(self.driver, self.start_urls[0])
+        self._item_regions = {}
         # self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super().from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.item_saved, signal=scrapy.signals.item_scraped)
+        crawler.signals.connect(spider.item_dropped, signal=scrapy.signals.item_dropped)
+        return spider
+
+    def item_saved(self, item, response, spider):
+        region = self._item_regions.pop(id(item))
+        self.observation.stats['regions'][region]['saved'] += 1
+
+    def item_dropped(self, item, response, exception, spider):
+        region = self._item_regions.pop(id(item))
+        self.observation.stats['regions'][region]['dropped'] += 1
+        message = str(exception)
+        categories = (
+            ('Duplicate item (TITLE)', 'duplicate_title'), ('Duplicate item (PHONE)', 'duplicate_phone'),
+            ('Drop 일급', 'low_daily_pay'), ('Drop 월급', 'low_monthly_pay'),
+            ('27자 미만', 'short_detail'), ('6자 미만', 'short_title'),
+            ('72자 이상', 'long_title'), ('1800자 초과', 'long_detail'),
+            ('Drop 비계/동바리', 'scaffold_pay_rule'), ('Drop phone', 'blocked_phone'),
+            ('Drop site', 'missing_site'), ('Drop title', 'title_rule'), ('Drop detail', 'detail_rule'),
+        )
+        category = next((category for pattern, category in categories if pattern in message), 'other')
+        self.observation.stats['drop_reasons'][category] += 1
 
     def _matches_region(self, site_text, keywords, exclude_keywords):
         """지역이 키워드와 매칭되는지 확인"""
@@ -60,6 +98,9 @@ class Recru_It_Spider(scrapy.Spider):
         item_limit = region_config.get('item_limit', None)
         sleep_before = region_config['sleep_before']
         sleep_between = region_config['sleep_between']
+        region_stats = {'candidates': 0, 'verified': 0, 'failed': 0, 'manual': 0,
+                        'saved': 0, 'dropped': 0, 'complete': False}
+        self.observation.stats['regions'][region_name] = region_stats
 
         # 1. 먼저 해당 지역의 수동 아이템 추가 (크롤링 결과 맨 앞에 위치)
         if region_name in MANUAL_JOBS_BY_REGION:
@@ -67,11 +108,14 @@ class Recru_It_Spider(scrapy.Spider):
                 job_item = Recru_It_Item()
                 for key, value in job_data.items():
                     job_item[key] = value
+                self.observation.stats['counts']['manual'] += 1
+                region_stats['manual'] += 1
+                self._item_regions[id(job_item)] = region_name
                 yield job_item
 
         # 2. 그 다음 크롤링 아이템 추가
         print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        time.sleep(random.randint(*sleep_before))
+        self.observation.sleep(random.randint(*sleep_before), 'region_wait')
 
         for index, job_item in enumerate(ildao_items):
             # 제한 조건 체크
@@ -86,33 +130,70 @@ class Recru_It_Spider(scrapy.Spider):
             if not self._matches_region(site_text_items[index], keywords, exclude_keywords):
                 continue
 
-            try:
-                job_item.location_once_scrolled_into_view
-                time.sleep(random.randint(*sleep_between))
-                job_item.click()
-                time.sleep(.5)
-
-                title, site, type, pay, etc1, etc2, etc3, numpeople, phone, detail, imageURL = self.get_job_detail()
-
-                if True:
-                    job_item = Recru_It_Item()
-                    job_item['title'] = title
-                    job_item['site'] = site
-                    job_item['type'] = type
-                    job_item['pay'] = pay
-                    job_item['etc1'] = etc1
-                    job_item['etc2'] = etc2
-                    job_item['etc3'] = etc3
-                    job_item['numpeople'] = numpeople
-                    job_item['phone'] = phone
-                    job_item['detail'] = detail
-                    job_item['imageURL'] = imageURL
-                    job_item['time'] = ''
-                    job_item['sponsored'] = ''
-                    yield job_item
-
-            except Exception as e:
-                print(f"\n\n - - - - - - - - 예외처리 됨 !! ( {region_name} ) - - - - - - - - \n\n{e}\n\n")
+            region_stats['candidates'] += 1
+            raw = None
+            for retry in (False, True):
+                attempt_started = time.monotonic()
+                record = self.observation.start_attempt(region_name, retry)
+                outcome = 'unexpected_error'
+                try:
+                    if retry:
+                        self.observation.stats['counts']['retries'] += 1
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'})", job_item)
+                    else:
+                        job_item.location_once_scrolled_into_view
+                    self.observation.sleep(random.randint(*sleep_between), 'click_wait')
+                    self.observation.arm(job_item, region_name, retry, record=record)
+                    job_item.click()
+                    self.observation.sleep(.5, 'post_click_wait')
+                    raw = self.observation.read()
+                    outcome = 'verified'
+                except ElementClickInterceptedException:
+                    outcome = 'click_intercepted'
+                except FormatMismatch as error:
+                    outcome = 'format_mismatch'
+                    record['reason'] = str(error)
+                except EvidenceUnavailable as error:
+                    outcome = 'evidence_unavailable'
+                    record['reason'] = str(error)
+                except VerificationError as error:
+                    outcome = 'verification_failed'
+                    record['reason'] = str(error)
+                except WebDriverException as error:
+                    outcome = 'browser_error'
+                    # An item-level browser error may be retried only while the
+                    # page-wide evidence is still usable. Do not log raw errors.
+                    record['reason'] = type(error).__name__
+                    self.observation.require_observer()
+                except ObservationUnavailable:
+                    outcome = 'observation_stopped'
+                    raise
+                except ServerUnavailable:
+                    outcome = 'source_stopped'
+                    raise
+                finally:
+                    try:
+                        self.observation.drain()
+                    finally:
+                        self.observation.finish_attempt(record, outcome)
+                        elapsed = time.monotonic() - attempt_started
+                        self.observation.stats['seconds']['retry' if retry else 'first_attempt'] += elapsed
+                if raw is not None:
+                    break
+            if raw is None:
+                region_stats['failed'] += 1
+                self.observation.stats['counts']['final_failed'] += 1
+                continue
+            values = self.get_job_detail(raw)
+            item = Recru_It_Item(zip(
+                ('title', 'site', 'type', 'pay', 'etc1', 'etc2', 'etc3', 'numpeople', 'phone', 'detail', 'imageURL'), values
+            ))
+            item['time'] = ''
+            item['sponsored'] = ''
+            region_stats['verified'] += 1
+            self._item_regions[id(item)] = region_name
+            yield item
+        region_stats['complete'] = True
 
     def parse(self, response):
         # 설정 값 가져오기
@@ -120,7 +201,8 @@ class Recru_It_Spider(scrapy.Spider):
         initial_sleep = CRAWL_CONFIG['initial_sleep']
 
         self.driver.get(response.url)
-        time.sleep(random.randint(*initial_sleep))
+        self.observation.sleep(random.randint(*initial_sleep), 'initial_wait')
+        self.observation.begin_collection()
 
         # ildao_items 가져오기
         ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
@@ -128,14 +210,17 @@ class Recru_It_Spider(scrapy.Spider):
         # 새벽시간에 조금씩만 가져오자 (가져오는양 봐가면 점점~ 줄여)
         # for i in range(random.randint(47, 59)):
         for i in range(random.randint(*scroll_range)):
+            before = len(ildao_items)
+            scroll_started = time.monotonic()
             try:
                 print(f"목록가져오기{i} : {ildao_items[-1].location_once_scrolled_into_view}")
             except Exception as e:
                 print(f"\n\n - - - - - - - - 목록가져오기 예외처리 됨 !! - - - - - - - - \n\n{e}\n\n")
-                time.sleep(random.randint(3, 6))   # time.sleep(2.2)
+                self.observation.sleep(random.randint(3, 6), 'scroll_wait')
             else:
-                time.sleep(random.randint(3, 5))    # time.sleep(2.2)
+                self.observation.sleep(random.randint(3, 5), 'scroll_wait')
                 ildao_items = self.driver.find_elements(By.CSS_SELECTOR, "div.scrollsection > div.box.pointer")
+            self.observation.stats['scrolls'].append({'before': before, 'after': len(ildao_items), 'seconds': time.monotonic() - scroll_started})
 
         first_no_simple = 0
         simple_text_items = list(); site_text_items = list(); pay_text_items = list()
@@ -152,6 +237,8 @@ class Recru_It_Spider(scrapy.Spider):
             # simple_temp = simple_item.text.split('\n')[0]; site_temp = site_item.text.split('\n')[1]
             # print(f"\n{num_of_item} : {simple_temp}\t/\t{site_temp}\t/\t{pay_item.text}\t\n")
             num_of_item += 1
+
+        self.observation.compare_cards(simple_text_items, site_text_items, pay_text_items)
 
         # 첫번째 '간편지원'이 아닌 값을 'first_no_simple'에 저장
         for index, simple_text_item in enumerate(simple_text_items):    # '간편지원' 이 아닌 첫번재 값 구함
@@ -170,47 +257,46 @@ class Recru_It_Spider(scrapy.Spider):
                 first_no_simple
             )
 
-        time.sleep(random.randint(3, 30))
+        self.observation.sleep(random.randint(3, 30), 'final_wait')
+        self.observation.stats['complete'] = True
         print(f"\n\n\n총 아이템 수 : [{num_of_item}]\n")
         print(f"\nfirst_no_simple : [{first_no_simple}]\n") # 간편지원 아닌 index 출력
         print(f"\n # # # # # # # # # # # # # # # # # # # # # #   정상종료   # # # # # # # # # # # # # # # # # # # # # #\n\n")
-        self.driver.quit()
-        pass
+
+    def closed(self, reason):
+        try:
+            self.observation.save(self.crawler.stats.get_stats(), reason)
+        finally:
+            self.driver.quit()
 
     # 본문 가져오기
-    def get_job_detail(self):
+    def get_job_detail(self, raw):
         pattern_da_dot = re.compile('다\.')
         pattern_dot_num = re.compile('\.[0-9]')
-        title_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info div.ft5.NotoSansM")
-        title_pre1 = re.sub('[^a-zA-Z0-9가-힣一-龥_\s\(\)\[\]\-\~\/\,\.\ㆍ\&\%]', ' ', title_sel.text)
+        title_pre1 = re.sub('[^a-zA-Z0-9가-힣一-龥_\s\(\)\[\]\-\~\/\,\.\ㆍ\&\%]', ' ', raw['title'])
         title_pre2 = title_pre1.strip(' _-~/,.ㆍ&%').lstrip(')]').rstrip('([').upper()
         pattern_da_dot_num = pattern_da_dot.findall(title_pre2) + pattern_dot_num.findall(title_pre2)
         if len(pattern_da_dot_num) == 0:    # '다.' , '.숫자' 가 없을때만 '.' 삭제
             title_pre2 = re.sub('\.', ' ', title_pre2)
         title = re.sub('\s{2,9}', ' ', title_pre2)
 
-        site_sel = self.driver.find_element(By.CSS_SELECTOR, "div.time.ft11.col_gra04.NotoSansL")
-        site_pre = re.sub('[a-z]+_[a-z]+\s', '', site_sel.text) # "location_on " 없애기
+        site_pre = re.sub('[a-z]+_[a-z]+\s', '', raw['site']) # "location_on " 없애기
         site = re.sub('세종 세종', '세종시', site_pre)
 
-        type_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info div.ft11 div.ft10")
-        type_pre = re.sub('조공/잡부', '조공/보조', type_sel.text)
+        type_pre = re.sub('조공/잡부', '조공/보조', raw['type'])
         type = re.sub('시스템/비계', '비계/동바리', type_pre)
 
-        pay_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info div.col_blu02.ft10 > div")
-        pay_pre1 = re.sub('\n', ' ', re.sub('0 원', '0원', pay_sel.text))
+        pay_pre1 = re.sub('\n', ' ', re.sub('0 원', '0원', raw['pay']))
         pay_pre2 = re.sub('0,000', '만', pay_pre1)
         if pay_pre2.find(',000') == -1:
             pay = re.sub(',', '', pay_pre2)
         else:
             pay = re.sub('', '', pay_pre2)
 
-        etcs_sel = self.driver.find_elements(By.CSS_SELECTOR, "#detail_info div.ft11.col_blu02")
-
         etc1 = '';etc2 = '';etc3 = ''
         etc_set = set()
-        for etc in etcs_sel:
-            etc_set.add(etc.text.strip(','))
+        for etc in raw['etcs']:
+            etc_set.add(etc.strip(','))
 
         if '숙식제공' in etc_set:
             etc1 = '숙식제공'
@@ -243,28 +329,19 @@ class Recru_It_Spider(scrapy.Spider):
 
         numpeople_int = 0;numpeople_pre = 0
         num_pattern = re.compile('[0-9]')
-        numpeople_sel_list = self.driver.find_elements(By.CSS_SELECTOR, "#detail_info div.ft11 div.ft10[style='display: flex;']")
-        for numpeople_sel in numpeople_sel_list:
-            if len(num_pattern.findall(numpeople_sel.text)) > 0:    # 숫자가 들어있는 문자열만 가져온다
-                numpeople_int = re.sub('[^0-9]', '', numpeople_sel.text)    # 숫자를 제외한 문자 삭제
+        for numpeople_text in raw['people']:
+            if len(num_pattern.findall(numpeople_text)) > 0:    # 숫자가 들어있는 문자열만 가져온다
+                numpeople_int = re.sub('[^0-9]', '', numpeople_text)    # 숫자를 제외한 문자 삭제
                 #print(f"numpeople_int : {numpeople_int}")
                 numpeople_pre += int(numpeople_int)                 # 초보+조공+준공+기공 = 총인원
         numpeople = f"{numpeople_pre}명"
 
-        phone_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info div.ft11 div.ft10.RobotoM")
-        phone = re.sub('', '', phone_sel.text)
+        phone = re.sub('', '', raw['phone'])
 
-        detail_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info p.ft10.lin_h2")
-        detail_pre1 = re.sub('\n\n\n\n+', '\n\n\n', detail_sel.text)
+        detail_pre1 = re.sub('\n\n\n\n+', '\n\n\n', raw['detail'])
         detail = re.sub('잇', '있',re.sub('업슴', '없음',re.sub('잇슴', '있음', detail_pre1)))
     
-        imageURL_sel = '';imageURL = ''
-        try:
-            imageURL_sel = self.driver.find_element(By.CSS_SELECTOR, "#detail_info > div > div > div > div > img")
-        except Exception as e:
-            imageURL = ''
-        else:
-            imageURL = imageURL_sel.get_attribute('src')
+        imageURL = raw['imageURL']
 
         #  time_sel 에 들어오는 값 들 ⬇️ 2024/04/27현재 기준
         #  ⓵ "상시 모집"    👉 "02/17" (10주전) <- 오래된거 걸러지게
