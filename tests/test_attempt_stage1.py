@@ -129,6 +129,57 @@ class AttemptTests(unittest.TestCase):
             with self.assertRaises(EvidenceUnavailable):
                 self.observation.arm(Card(), '서울', True, timeout=0)
 
+    def test_region_wait_preserves_global_limits_exclusions_and_candidate_order(self):
+        self.region.update(sleep_before=(1, 4), item_limit=5, exclude_keywords=['부산'])
+        cards = [Card() for _ in range(7)]
+        selected = []
+        self.observation.arm = lambda card, *args, **kwargs: selected.append(cards.index(card))
+        with patch('recru_it.spiders.recru_it.random.uniform', return_value=2.5) as delay:
+            items = list(self.spider.process_region(
+                self.region, cards, ['', '', '간편지원', '', '', '', ''],
+                ['서울', '서울', '서울', '부산 서울', '서울', '서울', '서울'], 1))
+        self.assertEqual(selected, [1, 4])
+        self.assertEqual(len(items), 2)
+        self.assertEqual([card.click.call_count for card in cards], [0, 1, 0, 0, 1, 0, 0])
+        delay.assert_called_once_with(1, 4)
+        self.assertEqual(self.sleeps, [(2.5, 'region_wait'), (1, 'click_wait'),
+                                      (.5, 'post_click_wait'), (1, 'click_wait'), (.5, 'post_click_wait')])
+
+    def test_region_with_no_eligible_cards_never_scrolls_sleeps_or_clicks(self):
+        class UntouchedCard:
+            @property
+            def location_once_scrolled_into_view(self):
+                raise AssertionError('empty region must not scroll')
+
+        for first, simple, sites in [(0, ['간편지원'], ['서울']), (0, [''], ['부산']),
+                                     (1, [''], ['서울'])]:
+            with self.subTest(first=first, simple=simple, sites=sites):
+                self.assertEqual(list(self.spider.process_region(
+                    self.region, [UntouchedCard()], simple, sites, first)), [])
+                self.assertTrue(self.observation.stats['regions']['서울']['complete'])
+        self.assertEqual(self.sleeps, [])
+        self.observation.read.assert_not_called()
+
+    def test_manual_items_survive_an_empty_region_without_waiting(self):
+        with patch('recru_it.spiders.recru_it.MANUAL_JOBS_BY_REGION', {'서울': [{'title': 'manual fixture'}]}):
+            items = self.collect([])
+        self.assertEqual([item['title'] for item in items], ['manual fixture'])
+        self.assertEqual(self.sleeps, [])
+        self.assertEqual(self.observation.stats['regions']['서울']['manual'], 1)
+        self.assertTrue(self.observation.stats['regions']['서울']['complete'])
+
+    def test_finished_parse_has_no_terminal_wait_and_keeps_initial_wait(self):
+        self.spider.driver.get = Mock()
+        self.spider.driver.find_elements = Mock(return_value=[])
+        self.observation.begin_collection = Mock()
+        self.observation.compare_cards = Mock()
+        config = {'initial_sleep': (0, 0), 'scroll_range': (0, 0), 'regions': [self.region]}
+        with patch('recru_it.spiders.recru_it.CRAWL_CONFIG', config):
+            self.assertEqual(list(self.spider.parse(Mock(url='https://example.invalid'))), [])
+        self.assertEqual(self.sleeps, [(0, 'initial_wait')])
+        self.assertTrue(self.observation.stats['complete'])
+        self.observation.begin_collection.assert_called_once()
+
 
 class LegacyComparisonTests(unittest.TestCase):
     def test_equal_before_after_snapshots_do_not_authorize_different_legacy_text(self):

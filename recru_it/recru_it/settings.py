@@ -109,7 +109,7 @@ CRAWL_CONFIG = {
             'keywords': ['서울'],
             'exclude_keywords': [],
             'item_limit': None,         # None = 제한 없음
-            'sleep_before': (2, 5),     # 지역 크롤링 전 대기 (초)
+            'sleep_before': (1, 4),     # 지역 크롤링 전 대기 (초)
             'sleep_between': (1, 6),    # 각 아이템 클릭 전 대기 (초)
         },
         {
@@ -117,7 +117,7 @@ CRAWL_CONFIG = {
             'keywords': ['부산'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 14),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -125,7 +125,7 @@ CRAWL_CONFIG = {
             'keywords': ['경기'],
             'exclude_keywords': [],
             'item_limit': 450,          # 경기는 450개 제한
-            'sleep_before': (3, 23),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -133,7 +133,7 @@ CRAWL_CONFIG = {
             'keywords': ['인천'],
             'exclude_keywords': [],
             'item_limit': 450,          # 인천은 450개 제한
-            'sleep_before': (3, 5),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -141,7 +141,7 @@ CRAWL_CONFIG = {
             'keywords': ['충남'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -149,7 +149,7 @@ CRAWL_CONFIG = {
             'keywords': ['충북'],
             'exclude_keywords': [],
             'item_limit': 450,          # 충북은 450개 제한
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -157,7 +157,7 @@ CRAWL_CONFIG = {
             'keywords': ['대전'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -165,7 +165,7 @@ CRAWL_CONFIG = {
             'keywords': ['세종'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -173,7 +173,7 @@ CRAWL_CONFIG = {
             'keywords': ['전남'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 17),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -181,7 +181,7 @@ CRAWL_CONFIG = {
             'keywords': ['광주'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -189,7 +189,7 @@ CRAWL_CONFIG = {
             'keywords': ['전북'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 4),
         },
         {
@@ -197,7 +197,7 @@ CRAWL_CONFIG = {
             'keywords': ['경남'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 15),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -205,7 +205,7 @@ CRAWL_CONFIG = {
             'keywords': ['울산'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -213,7 +213,7 @@ CRAWL_CONFIG = {
             'keywords': ['경북'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 17),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -221,7 +221,7 @@ CRAWL_CONFIG = {
             'keywords': ['대구'],
             'exclude_keywords': ['부산'],  # "부산 해운대구" 제외
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 3),
         },
         {
@@ -229,7 +229,7 @@ CRAWL_CONFIG = {
             'keywords': ['강원'],
             'exclude_keywords': [],
             'item_limit': None,
-            'sleep_before': (3, 17),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 6),
         },
         {
@@ -239,7 +239,7 @@ CRAWL_CONFIG = {
                                 '대전', '세종', '전남', '광주', '전북', '경남',
                                 '울산', '경북', '대구', '강원'],
             'item_limit': None,
-            'sleep_before': (3, 7),
+            'sleep_before': (1, 4),
             'sleep_between': (1, 7),
         },
     ]

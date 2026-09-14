@@ -113,10 +113,8 @@ class Recru_It_Spider(scrapy.Spider):
                 self._item_regions[id(job_item)] = region_name
                 yield job_item
 
-        # 2. 그 다음 크롤링 아이템 추가
-        print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-        self.observation.sleep(random.randint(*sleep_before), 'region_wait')
-
+        # Start a region only when its first eligible card is reached.
+        region_started = False
         for index, job_item in enumerate(ildao_items):
             # 제한 조건 체크
             if item_limit and index >= item_limit:
@@ -129,6 +127,11 @@ class Recru_It_Spider(scrapy.Spider):
             # 지역 필터링
             if not self._matches_region(site_text_items[index], keywords, exclude_keywords):
                 continue
+
+            if not region_started:
+                print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
+                self.observation.sleep(random.uniform(*sleep_before), 'region_wait')
+                region_started = True
 
             region_stats['candidates'] += 1
             raw = None
@@ -257,7 +260,6 @@ class Recru_It_Spider(scrapy.Spider):
                 first_no_simple
             )
 
-        self.observation.sleep(random.randint(3, 30), 'final_wait')
         self.observation.stats['complete'] = True
         print(f"\n\n\n총 아이템 수 : [{num_of_item}]\n")
         print(f"\nfirst_no_simple : [{first_no_simple}]\n") # 간편지원 아닌 index 출력
