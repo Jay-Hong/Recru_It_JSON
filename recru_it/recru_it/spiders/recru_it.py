@@ -71,6 +71,14 @@ class Recru_It_Spider(scrapy.Spider):
             stable, timeout = readiness['stable_seconds'], readiness['timeout_seconds']
             if not (math.isfinite(stable) and math.isfinite(timeout) and 0 < stable <= timeout):
                 raise ValueError('invalid click readiness timing')
+        limits = self.optimizations.get('list_readiness')
+        if limits:
+            timings = [limits[key] for key in ('idle_seconds', 'timeout_seconds', 'stable_seconds', 'total_seconds')]
+            if (not all(math.isfinite(value) and value > 0 for value in timings)
+                    or not limits['stable_seconds'] < limits['idle_seconds'] <= limits['timeout_seconds'] <= limits['total_seconds']
+                    or any(type(limits[key]) is not int or limits[key] < 1
+                           for key in ('max_requests_per_scroll', 'extra_request_budget'))):
+                raise ValueError('invalid list readiness bounds')
         self.click_pacer = (StartInterval(self.optimizations['click_interval'], self.observation.sleep, 'click_wait')
                             if self.optimizations.get('click_interval') else None)
         self.scroll_pacer = (StartInterval(self.optimizations['scroll_interval'], self.observation.sleep, 'scroll_wait')
@@ -291,6 +299,12 @@ class Recru_It_Spider(scrapy.Spider):
     def scroll_list(self, cards, planned):
         summary = {'planned': planned, 'completed': 0, 'ended': False}
         self.observation.stats['list_collection'] = summary
+        limits = getattr(self, 'optimizations', {}).get('list_readiness')
+        if limits:
+            initial = self.observation.list_state()
+            budget = {'started': time.monotonic(), 'initial_requests': initial['requestsStarted'],
+                      'max_requests': planned + limits['extra_request_budget']}
+            summary.update(readiness_version=1, max_requests=budget['max_requests'])
         for index in range(planned):
             before = self.observation.list_state()
             if before['complete'] and not before['pending'] and before['count'] == before['modelCount']:
@@ -301,16 +315,23 @@ class Recru_It_Spider(scrapy.Spider):
             started = time.monotonic()
             try:
                 record['start_gap_seconds'] = self.scroll_pacer.start()
+                if limits:
+                    before = self.observation.list_state()
+                    if before['pending'] or before['count'] != before['modelCount']:
+                        raise EvidenceUnavailable('list_changed_between_scrolls')
                 if not cards:
                     raise ObservationUnavailable('empty_list_without_end_signal')
                 cards[-1].location_once_scrolled_into_view
-                try:
-                    state, outcome, ready = self.observation.wait_list(before, first=index == 0)
-                except EvidenceUnavailable:
-                    # Extend the observation once without sending another scroll
-                    # while a response might still be pending.
-                    record['rechecks'] = 1
-                    state, outcome, ready = self.observation.wait_list(before, timeout=5)
+                if limits:
+                    state, outcome, ready = self.observation.wait_list_bounded(
+                        before, record, limits, budget, first=index == 0)
+                else:
+                    try:
+                        state, outcome, ready = self.observation.wait_list(before, first=index == 0)
+                    except EvidenceUnavailable:
+                        # Observe once more without sending another scroll.
+                        record['rechecks'] = 1
+                        state, outcome, ready = self.observation.wait_list(before, timeout=5)
                 record.update(after=state['count'], outcome=outcome, ready_seconds=ready)
                 cards = self.driver.find_elements(By.CSS_SELECTOR, 'div.scrollsection > div.box.pointer')
                 if len(cards) != state['count']:
@@ -325,6 +346,15 @@ class Recru_It_Spider(scrapy.Spider):
                 record['seconds'] = time.monotonic() - started
             if summary['ended']:
                 break
+        if limits:
+            state = self.observation.list_state()
+            inventory = self.observation.list_inventory()
+            summary.update(final_state=state, inventory=inventory,
+                           requests=state['requestsStarted'] - budget['initial_requests'])
+            if (state['pending'] or state['count'] != state['modelCount'] or state['count'] != len(cards)
+                    or inventory['count'] != len(cards) or inventory['hidden']
+                    or summary['requests'] > budget['max_requests']):
+                raise ObservationUnavailable('list_final_state_unverified')
         return cards
 
     def parse(self, response):

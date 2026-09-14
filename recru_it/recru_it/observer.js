@@ -321,9 +321,12 @@
           listComplete = value === 'complete';
         });
       }
+      const listRequests = requests.filter(r => r.kind === 'list');
+      const networkPending = listRequests.filter(r => !r.done).length;
       return {count: document.querySelectorAll('div.scrollsection > div.box.pointer').length,
         modelCount: vm.normalRecruList.length + vm.emergenRecruList.length,
-        pending: requests.some(r => r.kind === 'list' && !r.done) || vm.loadFlag === true,
+        pending: networkPending > 0 || vm.loadFlag === true,
+        networkPending, loadFlag: vm.loadFlag === true, requestsStarted: listRequests.length,
         events: listEvents, complete: listComplete};
     },
     salaryCard(card) {
