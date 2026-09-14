@@ -100,6 +100,12 @@ FEED_EXPORT_INDENT = 4
 
 # 크롤링 설정
 CRAWL_CONFIG = {
+    'optimizations': {
+        'salary_prefilter': True,
+        'salary_audit_rate': 0.2,
+        'click_interval': (1.6, 2.8),  # None restores regional waits + 0.5 seconds.
+        'scroll_interval': (1.5, 2.5),  # None restores the original scrolling loop.
+    },
     'scroll_range': (50, 53),           # 스크롤 반복 횟수 (min, max)
     'initial_sleep': (2, 13),           # 초기 페이지 로드 대기 시간 (초)
 

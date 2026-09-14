@@ -84,6 +84,18 @@ class BaselineReportTests(unittest.TestCase):
         self.assertEqual(row['detail_response_seconds']['count'], 1)
         self.assertEqual(row['detail_response_seconds']['median'], .2)
 
+    def test_prefilter_is_separate_from_collected_candidate_cost_and_requires_audit(self):
+        run, stats, jobs = sample()
+        stats['regions']['0'].update(candidates=61, prefiltered=10)
+        stats['prefilter'] = {'skipped': 10, 'audit_selected': 2, 'audit_checked': 2}
+        row = summarize(run, stats, jobs, True, cohort='combined')
+        self.assertTrue(row['comparable'])
+        self.assertEqual(row['prefiltered'], 10)
+        self.assertEqual(row['attempt_seconds_per_collected_candidate'], 2)
+        self.assertLess(row['attempt_seconds_per_candidate'], 2)
+        stats['prefilter']['audit_checked'] = 1
+        self.assertFalse(summarize(run, stats, jobs, True)['comparable'])
+
     def test_missing_collection_step_and_unverified_readiness_do_not_count(self):
         run, stats, jobs = sample()
         stats['attempts'][-1]['ready_seconds'] = 20

@@ -1,4 +1,4 @@
-"""Stage 1: verified snapshots and aggregate diagnostics, without faster pacing."""
+"""Verified snapshots, list readiness, and aggregate diagnostics."""
 
 from collections import Counter, defaultdict
 from contextlib import contextmanager
@@ -176,6 +176,37 @@ class Observation:
         self.drain()
         self.phase = 'collection'
 
+    def salary_card(self, card):
+        try:
+            return self.driver.execute_script('return window.__recruObserver.salaryCard(arguments[0])', card)
+        except JavascriptException as error:
+            self.require_observer()
+            raise EvidenceUnavailable('salary_card_unavailable') from error
+
+    def list_state(self):
+        self.drain()
+        try:
+            return self.driver.execute_script('return window.__recruObserver.listState()')
+        except WebDriverException as error:
+            raise ObservationUnavailable('list_readiness_unavailable') from error
+
+    def wait_list(self, before, first=False, timeout=5):
+        started = time.monotonic()
+        while True:
+            state = self.list_state()
+            elapsed = time.monotonic() - started
+            settled = not state['pending'] and state['count'] == state['modelCount']
+            if settled and (state['complete'] or state['count'] > before['count']):
+                return state, 'complete' if state['complete'] else 'grown', elapsed
+            # The first scroll can target a card already in view. This is a
+            # warm-up only, never an end-of-list inference.
+            if (first and elapsed >= 2.5 and settled and state['count'] == before['count']
+                    and state['events'] == before['events']):
+                return state, 'initial_no_request', elapsed
+            if elapsed >= timeout:
+                raise EvidenceUnavailable('list_did_not_settle_or_grow')
+            self.sleep(.1, 'scroll_ready_wait')
+
     def compare_cards(self, simple, sites, pays):
         overview = self.driver.execute_script('return window.__recruObserver.overview()')
         self.stats['user_agent'] = overview['userAgent']
@@ -226,7 +257,7 @@ class Observation:
         return record
 
     def read(self, timeout=3):
-        """Called after the unchanged 0.5-second wait; readiness was observed earlier."""
+        """Read only when identity, request completion, and every field agree."""
         started = time.monotonic()
         last = {}
         while time.monotonic() - started < timeout:
@@ -280,6 +311,9 @@ class Observation:
             page = self.driver.execute_script('return window.__recruObserver.summary(arguments[0])', record['number'])
             if page['attempt'] and page['attempt']['number'] == record['number']:
                 record['ready_seconds'] = page['attempt']['readySeconds']
+                clicked = page['attempt'].get('clicked')
+                if clicked is not None:
+                    record['browser_click_seconds'] = clicked / 1000
             for browser_request in page['requests']:
                 if browser_request['attempt'] == record['number']:
                     matches = [r for r in self.requests if r['sequence'] == browser_request['sequence']]

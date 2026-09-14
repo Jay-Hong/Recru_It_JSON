@@ -21,7 +21,7 @@ def validate(items, stats, run_id, minimum=50):
     regions = stats.get('regions', {})
     if set(regions) != {region['name'] for region in CRAWL_CONFIG['regions']} or any(
             region.get('complete') is not True or
-            region.get('candidates', -1) != region.get('verified', 0) + region.get('failed', 0) or
+            region.get('candidates', -1) != region.get('verified', 0) + region.get('failed', 0) + region.get('prefiltered', 0) or
             region.get('verified', 0) + region.get('manual', 0) != region.get('saved', -1) + region.get('dropped', -1)
             for region in regions.values()):
         problems.append('incomplete region traversal or counts')
@@ -30,6 +30,25 @@ def validate(items, stats, run_id, minimum=50):
     # A format mismatch rejects that snapshot; it does not reject other items
     # whose atomic values passed both identity and text-compatibility checks.
     counts = stats.get('counts', {})
+    skipped = sum(region.get('prefiltered', 0) for region in regions.values())
+    options = stats.get('optimizations', {})
+    prefilter = stats.get('prefilter', {})
+    if options.get('salary_prefilter'):
+        if (skipped != prefilter.get('skipped', 0) or
+                skipped != prefilter.get('low_daily_pay', 0) + prefilter.get('low_monthly_pay', 0) or
+                prefilter.get('eligible', 0) != skipped + prefilter.get('audit_selected', 0) or
+                prefilter.get('audit_selected', 0) != prefilter.get('audit_checked', 0) or
+                prefilter.get('audit_failed', 0) or prefilter.get('audit_mismatch', 0) or
+                (skipped and not prefilter.get('audit_checked', 0))):
+            problems.append('salary prefilter counts or audit did not pass')
+    elif skipped:
+        problems.append('salary exclusions without enabled prefilter')
+    if options.get('scroll_interval'):
+        collection = stats.get('list_collection', {})
+        if (not collection or collection.get('completed') != len(stats.get('scrolls', [])) or
+                not (collection.get('ended') is True or collection.get('completed') == collection.get('planned')) or
+                any(s.get('outcome') not in ('grown', 'complete', 'initial_no_request') for s in stats.get('scrolls', []))):
+            problems.append('list collection did not complete')
     verified = sum(region.get('verified', 0) for region in regions.values())
     if counts.get('final_failed', 0) != sum(region.get('failed', 0) for region in regions.values()):
         problems.append('final failure counts do not match regions')

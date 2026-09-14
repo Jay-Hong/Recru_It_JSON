@@ -1,6 +1,7 @@
 #~/Documents/Recru_It_JSON/recru_it/recru_it/spiders/recru_it.py
 
 from datetime import date, timedelta
+from collections import Counter
 import random
 import re
 import time
@@ -14,6 +15,8 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
 from recru_it.items import Recru_It_Item
+from recru_it.pacing import StartInterval, salary_exclusion
+from recru_it.pipelines import pattern_day10_14, pattern_month10_14
 from recru_it.observation import (
     EvidenceUnavailable, FormatMismatch, Observation, ObservationUnavailable,
     ServerUnavailable, VerificationError, quiet_browser_logging,
@@ -43,6 +46,7 @@ class Recru_It_Spider(scrapy.Spider):
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=headlessoptions)
         self.observation = Observation(self.driver, self.start_urls[0])
         self._item_regions = {}
+        self.configure_optimizations()
         # self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
     @classmethod
@@ -55,6 +59,18 @@ class Recru_It_Spider(scrapy.Spider):
     def item_saved(self, item, response, spider):
         region = self._item_regions.pop(id(item))
         self.observation.stats['regions'][region]['saved'] += 1
+
+    def configure_optimizations(self):
+        self.optimizations = dict(CRAWL_CONFIG.get('optimizations', {}))
+        rate = self.optimizations.get('salary_audit_rate', .2)
+        if not 0 < rate <= 1:
+            raise ValueError('salary audit rate must be in (0, 1]')
+        self.click_pacer = (StartInterval(self.optimizations['click_interval'], self.observation.sleep, 'click_wait')
+                            if self.optimizations.get('click_interval') else None)
+        self.scroll_pacer = (StartInterval(self.optimizations['scroll_interval'], self.observation.sleep, 'scroll_wait')
+                             if self.optimizations.get('scroll_interval') else None)
+        self.observation.stats['optimizations'] = self.optimizations
+        self.observation.stats['prefilter'] = Counter()
 
     def item_dropped(self, item, response, exception, spider):
         region = self._item_regions.pop(id(item))
@@ -98,7 +114,7 @@ class Recru_It_Spider(scrapy.Spider):
         item_limit = region_config.get('item_limit', None)
         sleep_before = region_config['sleep_before']
         sleep_between = region_config['sleep_between']
-        region_stats = {'candidates': 0, 'verified': 0, 'failed': 0, 'manual': 0,
+        region_stats = {'candidates': 0, 'verified': 0, 'failed': 0, 'manual': 0, 'prefiltered': 0,
                         'saved': 0, 'dropped': 0, 'complete': False}
         self.observation.stats['regions'][region_name] = region_stats
 
@@ -128,12 +144,17 @@ class Recru_It_Spider(scrapy.Spider):
             if not self._matches_region(site_text_items[index], keywords, exclude_keywords):
                 continue
 
+            region_stats['candidates'] += 1
+            exclusion, audit = self.prefilter_decision(job_item)
+            if exclusion and not audit:
+                region_stats['prefiltered'] += 1
+                continue
+
             if not region_started:
                 print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
                 self.observation.sleep(random.uniform(*sleep_before), 'region_wait')
                 region_started = True
 
-            region_stats['candidates'] += 1
             raw = None
             for retry in (False, True):
                 attempt_started = time.monotonic()
@@ -145,10 +166,17 @@ class Recru_It_Spider(scrapy.Spider):
                         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'})", job_item)
                     else:
                         job_item.location_once_scrolled_into_view
-                    self.observation.sleep(random.randint(*sleep_between), 'click_wait')
+                    pacer = getattr(self, 'click_pacer', None)
+                    if not pacer:
+                        self.observation.sleep(random.randint(*sleep_between), 'click_wait')
                     self.observation.arm(job_item, region_name, retry, record=record)
+                    if pacer:
+                        record['click_gap_seconds'] = pacer.start()
+                    record['click_started_seconds'] = time.monotonic() - self.observation.started
+                    record['salary_audit'] = audit
                     job_item.click()
-                    self.observation.sleep(.5, 'post_click_wait')
+                    if not pacer:
+                        self.observation.sleep(.5, 'post_click_wait')
                     raw = self.observation.read()
                     outcome = 'verified'
                 except ElementClickInterceptedException:
@@ -184,10 +212,18 @@ class Recru_It_Spider(scrapy.Spider):
                 if raw is not None:
                     break
             if raw is None:
+                if audit:
+                    self.observation.stats['prefilter']['audit_failed'] += 1
                 region_stats['failed'] += 1
                 self.observation.stats['counts']['final_failed'] += 1
                 continue
             values = self.get_job_detail(raw)
+            if audit:
+                pattern = pattern_day10_14 if exclusion == 'low_daily_pay' else pattern_month10_14
+                if not pattern.search(values[3]):
+                    self.observation.stats['prefilter']['audit_mismatch'] += 1
+                    raise ObservationUnavailable('salary_prefilter_audit_mismatch')
+                self.observation.stats['prefilter']['audit_checked'] += 1
             item = Recru_It_Item(zip(
                 ('title', 'site', 'type', 'pay', 'etc1', 'etc2', 'etc3', 'numpeople', 'phone', 'detail', 'imageURL'), values
             ))
@@ -197,6 +233,68 @@ class Recru_It_Spider(scrapy.Spider):
             self._item_regions[id(item)] = region_name
             yield item
         region_stats['complete'] = True
+
+    def prefilter_decision(self, card):
+        options = getattr(self, 'optimizations', {})
+        if not options.get('salary_prefilter'):
+            return None, False
+        stats = self.observation.stats['prefilter']
+        try:
+            exclusion = salary_exclusion(self.observation.salary_card(card))
+        except EvidenceUnavailable:
+            # No exclusion evidence: collect and verify through the normal path.
+            stats['unavailable'] += 1
+            return None, False
+        if not exclusion:
+            return None, False
+        stats['eligible'] += 1
+        # Guarantee a sample even when very few low-pay cards are present.
+        audit = stats['eligible'] == 1 or random.random() < options.get('salary_audit_rate', .2)
+        if audit:
+            stats['audit_selected'] += 1
+        else:
+            stats['skipped'] += 1
+            stats[exclusion] += 1
+        return exclusion, audit
+
+    def scroll_list(self, cards, planned):
+        summary = {'planned': planned, 'completed': 0, 'ended': False}
+        self.observation.stats['list_collection'] = summary
+        for index in range(planned):
+            before = self.observation.list_state()
+            if before['complete'] and not before['pending'] and before['count'] == before['modelCount']:
+                summary['ended'] = True
+                break
+            record = {'before': len(cards), 'after': len(cards), 'rechecks': 0}
+            self.observation.stats['scrolls'].append(record)
+            started = time.monotonic()
+            try:
+                record['start_gap_seconds'] = self.scroll_pacer.start()
+                if not cards:
+                    raise ObservationUnavailable('empty_list_without_end_signal')
+                cards[-1].location_once_scrolled_into_view
+                try:
+                    state, outcome, ready = self.observation.wait_list(before, first=index == 0)
+                except EvidenceUnavailable:
+                    # Extend the observation once without sending another scroll
+                    # while a response might still be pending.
+                    record['rechecks'] = 1
+                    state, outcome, ready = self.observation.wait_list(before, timeout=5)
+                record.update(after=state['count'], outcome=outcome, ready_seconds=ready)
+                cards = self.driver.find_elements(By.CSS_SELECTOR, 'div.scrollsection > div.box.pointer')
+                if len(cards) != state['count']:
+                    raise EvidenceUnavailable('list_changed_after_readiness')
+                summary['completed'] += 1
+                summary['ended'] = outcome == 'complete'
+            except (EvidenceUnavailable, WebDriverException):
+                self.observation.require_observer()
+                record['outcome'] = 'failed'
+                raise ObservationUnavailable('list_collection_incomplete') from None
+            finally:
+                record['seconds'] = time.monotonic() - started
+            if summary['ended']:
+                break
+        return cards
 
     def parse(self, response):
         # 설정 값 가져오기
@@ -212,7 +310,10 @@ class Recru_It_Spider(scrapy.Spider):
 
         # 새벽시간에 조금씩만 가져오자 (가져오는양 봐가면 점점~ 줄여)
         # for i in range(random.randint(47, 59)):
-        for i in range(random.randint(*scroll_range)):
+        planned_scrolls = random.randint(*scroll_range)
+        if getattr(self, 'scroll_pacer', None):
+            ildao_items = self.scroll_list(ildao_items, planned_scrolls)
+        for i in range(0 if getattr(self, 'scroll_pacer', None) else planned_scrolls):
             before = len(ildao_items)
             scroll_started = time.monotonic()
             try:

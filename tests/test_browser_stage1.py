@@ -109,6 +109,38 @@ class BrowserVerificationTests(unittest.TestCase):
         self.driver.execute_script('render()')
         self.assertTrue(self.driver.execute_script('return __recruObserver.snapshot().ok'))
 
+    def test_list_end_requires_explicit_event_and_reports_pending_render(self):
+        self.driver.execute_script('''
+            vm.$events = {$on: (name, fn) => { window.listEvent = fn; }};
+            vm.loadFlag = false;
+        ''')
+        state = self.driver.execute_script('return __recruObserver.listState()')
+        self.assertFalse(state['complete'])
+        self.assertEqual(state['events'], 0)
+        self.driver.execute_script("listEvent('loaded'); vm.loadFlag=true")
+        state = self.driver.execute_script('return __recruObserver.listState()')
+        self.assertFalse(state['complete'])
+        self.assertTrue(state['pending'])
+        self.driver.execute_script("listEvent('complete'); vm.loadFlag=false")
+        state = self.driver.execute_script('return __recruObserver.listState()')
+        self.assertTrue(state['complete'])
+        self.assertFalse(state['pending'])
+        self.assertEqual(state['events'], 2)
+
+    def test_salary_metadata_uses_the_selected_cards_render_identity(self):
+        self.driver.execute_script('''
+            const old=document.querySelector('.box.pointer');
+            old.innerHTML='<div class="sub_info foot"><div><div>12만</div></div></div>';
+            const second=old.cloneNode(true); old.parentElement.prepend(second);
+            second.querySelector('.foot > div > div').textContent='14만';
+            vm.normalRecruList=[{idx:'first',priceDiv:'1',price:'120000'},
+                               {idx:'second',priceDiv:'2',price:'140000'}];
+            vm._vnode.children.push({key:'normalRecruList1',elm:second});
+        ''')
+        card = self.driver.find_element(By.CSS_SELECTOR, '.box.pointer')
+        metadata = self.driver.execute_script('return __recruObserver.salaryCard(arguments[0])', card)
+        self.assertEqual(metadata, {'priceDiv': '2', 'price': '140000', 'pay': '14만'})
+
     def test_same_id_retry_requires_a_new_detail_object(self):
         self.assertTrue(self.click()['ok'])
         self.driver.execute_script('reuse=true')

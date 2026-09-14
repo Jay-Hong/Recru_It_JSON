@@ -17,6 +17,7 @@
   const multi = new Set(['etcs', 'people']);
   const requests = [];
   let attempt = null, sequence = 0, diagnosticErrors = 0, cachedVue = null;
+  let listVm = null, listEvents = 0, listComplete = false;
   const vue = () => {
     const list = document.querySelector('.scrollsection');
     if (cachedVue && !cachedVue._isDestroyed && cachedVue.$el.contains(list)) return cachedVue;
@@ -196,6 +197,28 @@
   new MutationObserver(observeReady).observe(document, {subtree: true, childList: true, characterData: true, attributes: true});
   window.__recruObserver = {
     selectors,
+    listState() {
+      const vm = vue();
+      if (listVm !== vm) {
+        if (!vm.$events || typeof vm.$events.$on !== 'function') throw Error('list_events_unavailable');
+        listVm = vm; listEvents = 0; listComplete = false;
+        vm.$events.$on('recuit_pageload', value => {
+          listEvents++;
+          listComplete = value === 'complete';
+        });
+      }
+      return {count: document.querySelectorAll('div.scrollsection > div.box.pointer').length,
+        modelCount: vm.normalRecruList.length + vm.emergenRecruList.length,
+        pending: requests.some(r => r.kind === 'list' && !r.done) || vm.loadFlag === true,
+        events: listEvents, complete: listComplete};
+    },
+    salaryCard(card) {
+      const match = cards().find(entry => entry.node === card);
+      if (!match) throw Error('card_identity_unavailable');
+      const pay = card.querySelector('div.sub_info.foot > div > div');
+      return {priceDiv: text(match.record.priceDiv), price: text(match.record.price),
+        pay: pay ? rendered(pay) : ''};
+    },
     unavailable() { return requests.some(r => [429, 503].includes(r.status)); },
     health() {
       try {

@@ -120,16 +120,24 @@ def summarize(run, stats, jobs, code_matches, reference=False, cohort='stage1'):
     # First/retry attempt timers include their waits and checks. Do not add those again.
     attempt_seconds = sum(stats['seconds'].get(key, 0) for key in ('first_attempt', 'retry'))
     row['attempt_seconds_per_candidate'] = attempt_seconds / candidates if candidates else None
+    row['prefiltered'] = sum(region.get('prefiltered', 0) for region in regions.values())
+    row['prefilter'] = stats.get('prefilter', {})
+    collected = candidates - row['prefiltered']
+    row['attempt_seconds_per_collected_candidate'] = attempt_seconds / collected if collected else None
     row['scroll_seconds_per_scroll'] = statistics.mean(s['seconds'] for s in stats['scrolls']) if stats['scrolls'] else None
     accounting = (len(regions) == 17 and all(
-        r['complete'] is True and r['candidates'] == r['verified'] + r['failed']
+        r['complete'] is True and r['candidates'] == r['verified'] + r['failed'] + r.get('prefiltered', 0)
         and r['verified'] + r.get('manual', 0) == r['saved'] + r['dropped']
         for r in regions.values())
         and verified == counts.get('verified', 0)
         and failed == counts.get('final_failed', 0)
         and stats['saved'] + stats['dropped'] == verified + counts.get('manual', 0)
         and sum(stats['drop_reasons'].values()) == stats['dropped']
-        and row['outcomes'].get('verified', 0) == verified)
+        and row['outcomes'].get('verified', 0) == verified
+        and row['prefiltered'] == row['prefilter'].get('skipped', 0)
+        and row['prefilter'].get('audit_selected', 0) == row['prefilter'].get('audit_checked', 0)
+        and not row['prefilter'].get('audit_failed', 0)
+        and not row['prefilter'].get('audit_mismatch', 0))
     if not accounting or not stats['complete'] or stats['close_reason'] != 'finished':
         row['review'].append('incomplete_or_inconsistent_statistics')
     if failed or stats['format_mismatches']:
