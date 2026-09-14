@@ -88,6 +88,51 @@
     throw Error('detail_model_unavailable');
   };
   const text = value => String(value == null ? '' : value);
+  // Only identifiers and numeric result codes leave the page. Never retain a
+  // response body, error message, user/account ID, or arbitrary string value.
+  const jobId = value => {
+    if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
+    return typeof value === 'string' && /^\d{1,20}$/.test(value) ? value : null;
+  };
+  function responseDiagnostic(xhr) {
+    try {
+      let body;
+      if (xhr.responseType === 'json') body = xhr.response;
+      else if (!xhr.responseType || xhr.responseType === 'text') {
+        const source = xhr.responseText;
+        if (typeof source !== 'string') return {state: 'unavailable'};
+        if (!source.length) return {state: 'empty'};
+        if (source.length > 262144) return {state: 'too_large'};
+        try { body = JSON.parse(source); } catch (_) { return {state: 'invalid_json'}; }
+      } else return {state: 'unsupported_type'};
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return {state: 'not_object'};
+      const own = key => Object.prototype.hasOwnProperty.call(body, key);
+      const value = body.rescode;
+      const code = typeof value === 'number' ? value :
+        typeof value === 'string' && /^-?\d{1,4}$/.test(value) ? Number(value) : null;
+      const validCode = Number.isInteger(code) && Math.abs(code) <= 9999;
+      const data = body.data;
+      const dataState = !own('data') ? 'missing' : data === null ? 'null' : Array.isArray(data) ?
+        (data.length ? 'array' : 'empty_array') : typeof data === 'object' ?
+        (Object.keys(data).length ? 'object' : 'empty_object') :
+        data === '' ? 'empty_string' : typeof data;
+      return {state: 'captured', rescode: validCode ? code : null,
+        rescode_state: !own('rescode') ? 'missing' : validCode ? 'numeric' : 'unsupported',
+        data_state: dataState, job_id: data && typeof data === 'object' && !Array.isArray(data) ? jobId(data.idx) : null};
+    } catch (_) {
+      // A missing diagnostic cannot make a snapshot valid or interrupt the app.
+      return {state: 'unavailable'};
+    }
+  }
+  function identityDiagnostic(current) {
+    try {
+      const model = vue().recuitDetail;
+      return {state: !model ? 'missing' : model === current.previous ? 'unchanged' :
+        text(model.idx) !== current.id ? 'different_id' : 'matches',
+        model_present: Boolean(model), model_replaced: Boolean(model) && model !== current.previous,
+        model_job_id: model ? jobId(model.idx) : null};
+    } catch (_) { return {state: 'unavailable'}; }
+  }
   const canonical = value => text(value).replace(/[\u200b\u200e\u200f]/g, '').replace(/\s+/g, ' ').trim();
   const trim = value => value.replace(/^[^\S\u00a0]+|[^\S\u00a0]+$/g, '');
   const rendered = root => {
@@ -228,9 +273,11 @@
     const record = {sequence: ++sequence, kind: metadata.path === DETAIL ? 'detail' : 'list',
       attempt: attempt && attempt.clicked !== null && id === attempt.id ? attempt.number : null,
       started: performance.now(), done: false, status: null};
+    if (record.kind === 'detail') record.job_id = jobId(id);
     requests.push(record);
     xhr.addEventListener('loadend', () => {
       record.done = true; record.status = xhr.status; record.finished = performance.now();
+      if (record.kind === 'detail') record.response_diagnostic = responseDiagnostic(xhr);
       observeReady();
     }, {once: true});
     // The name appears in CDP's initiator stack, linking a request without adding
@@ -306,7 +353,8 @@
       // pending-request/status checks, not in every WebDriver response.
       return {diagnosticErrors, requests: requests.filter(r => r.attempt === number).map(r => ({...r})),
         attempt: attempt ? {number: attempt.number, clicked: attempt.clicked, ready: attempt.ready,
-          readySeconds: attempt.ready === null ? null : (attempt.ready - attempt.clicked) / 1000} : null};
+          readySeconds: attempt.ready === null ? null : (attempt.ready - attempt.clicked) / 1000,
+          job_id: jobId(attempt.id), identity: attempt.number === number ? identityDiagnostic(attempt) : null} : null};
     },
     overview() {
       return {userAgent: navigator.userAgent, cards: cards().map(({node, record}) => ({

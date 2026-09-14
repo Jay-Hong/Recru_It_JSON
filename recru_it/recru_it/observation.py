@@ -93,7 +93,7 @@ class Observation:
             'complete': False, 'regions': {}, 'counts': Counter(),
             'seconds': defaultdict(float), 'attempts': [], 'scrolls': [],
             'diagnostics': Counter(), 'format_mismatches': Counter(),
-            'drop_reasons': Counter(),
+            'drop_reasons': Counter(), 'identity_diagnostics_version': 1,
         }
         self.driver.execute_cdp_cmd('Network.enable', {})
         self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
@@ -344,6 +344,11 @@ class Observation:
                 clicked = page['attempt'].get('clicked')
                 if clicked is not None:
                     record['browser_click_seconds'] = clicked / 1000
+                record['job_id'] = page['attempt'].get('job_id')
+                record['identity'] = page['attempt'].get('identity') or {'state': 'unavailable'}
+                if record['identity']['state'] == 'unavailable':
+                    self.stats['diagnostics']['identity_diagnostic_missing'] += 1
+            responses = []
             for browser_request in page['requests']:
                 if browser_request['attempt'] == record['number']:
                     matches = [r for r in self.requests if r['sequence'] == browser_request['sequence']]
@@ -351,6 +356,17 @@ class Observation:
                         matches[0]['attempt'] = record['number']
                     else:
                         self.stats['diagnostics']['request_link_missing'] += 1
+                    if browser_request.get('kind') == 'detail':
+                        diagnostic = browser_request.get('response_diagnostic') or {'state': 'pending'}
+                        responses.append({
+                            'sequence': browser_request['sequence'],
+                            'request_id': matches[0]['request_id'] if len(matches) == 1 else None,
+                            'job_id': browser_request.get('job_id'), 'http_status': browser_request['status'],
+                            'response': diagnostic,
+                        })
+                        if diagnostic['state'] == 'unavailable':
+                            self.stats['diagnostics']['response_diagnostic_missing'] += 1
+            record['detail_responses'] = responses
             self.stats['diagnostics']['page_observer_errors'] = page['diagnosticErrors']
         except WebDriverException:
             self.stats['diagnostics']['page_summary_missing'] += 1
