@@ -17,17 +17,23 @@ class StartInterval:
         self.next_start = None
         self.last_start = None
 
-    def start(self):
+    def wait(self):
         if self.next_start is not None:
             remaining = self.next_start - self.clock()
             if remaining > 0:
                 self.sleep(remaining, self.name)
+
+    def mark_start(self):
         now = self.clock()
         gap = None if self.last_start is None else now - self.last_start
         self.last_start = now
         # Schedule from the actual start, never from an overdue deadline.
         self.next_start = now + self.sample(*self.interval)
         return gap
+
+    def start(self):
+        self.wait()
+        return self.mark_start()
 
 
 def salary_exclusion(card):

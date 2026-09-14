@@ -2,6 +2,7 @@
 
 from datetime import date, timedelta
 from collections import Counter
+import math
 import random
 import re
 import time
@@ -18,7 +19,7 @@ from recru_it.items import Recru_It_Item
 from recru_it.pacing import StartInterval, salary_exclusion
 from recru_it.pipelines import pattern_day10_14, pattern_month10_14
 from recru_it.observation import (
-    EvidenceUnavailable, FormatMismatch, Observation, ObservationUnavailable,
+    ClickNotReady, EvidenceUnavailable, FormatMismatch, Observation, ObservationUnavailable,
     ServerUnavailable, VerificationError, quiet_browser_logging,
 )
 from recru_it.settings import CRAWL_CONFIG, MANUAL_JOBS_BY_REGION
@@ -65,6 +66,11 @@ class Recru_It_Spider(scrapy.Spider):
         rate = self.optimizations.get('salary_audit_rate', .2)
         if not 0 < rate <= 1:
             raise ValueError('salary audit rate must be in (0, 1]')
+        readiness = self.optimizations.get('click_readiness')
+        if readiness:
+            stable, timeout = readiness['stable_seconds'], readiness['timeout_seconds']
+            if not (math.isfinite(stable) and math.isfinite(timeout) and 0 < stable <= timeout):
+                raise ValueError('invalid click readiness timing')
         self.click_pacer = (StartInterval(self.optimizations['click_interval'], self.observation.sleep, 'click_wait')
                             if self.optimizations.get('click_interval') else None)
         self.scroll_pacer = (StartInterval(self.optimizations['scroll_interval'], self.observation.sleep, 'scroll_wait')
@@ -131,6 +137,7 @@ class Recru_It_Spider(scrapy.Spider):
 
         # Start a region only when its first eligible card is reached.
         region_started = False
+        first_target_pending = True
         for index, job_item in enumerate(ildao_items):
             # 제한 조건 체크
             if item_limit and index >= item_limit:
@@ -150,28 +157,48 @@ class Recru_It_Spider(scrapy.Spider):
                 region_stats['prefiltered'] += 1
                 continue
 
-            if not region_started:
-                print(f"중단가기  : {ildao_items[first_no_simple].location_once_scrolled_into_view}")
-                self.observation.sleep(random.uniform(*sleep_before), 'region_wait')
-                region_started = True
-
+            first_in_region = first_target_pending
+            first_target_pending = False
             raw = None
             for retry in (False, True):
                 attempt_started = time.monotonic()
+                region_phase_seconds = 0
                 record = self.observation.start_attempt(region_name, retry)
+                record['region_first_candidate'] = first_in_region
                 outcome = 'unexpected_error'
                 try:
+                    readiness = getattr(self, 'optimizations', {}).get('click_readiness')
                     if retry:
                         self.observation.stats['counts']['retries'] += 1
+                    if readiness:
+                        # Observe before scrolling, including during region/cadence
+                        # waits. Never scroll again immediately before the click.
+                        self.observation.begin_movement(job_item, record, readiness['stable_seconds'])
+                        self.driver.execute_script(
+                            "arguments[0].scrollIntoView({block: 'center', inline: 'nearest'})", job_item)
+                    elif retry:
                         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'})", job_item)
                     else:
                         job_item.location_once_scrolled_into_view
+                    if not region_started:
+                        region_started = True
+                        region_phase_started = time.monotonic()
+                        try:
+                            self.observation.sleep(random.uniform(*sleep_before), 'region_wait')
+                        finally:
+                            region_phase_seconds = time.monotonic() - region_phase_started
                     pacer = getattr(self, 'click_pacer', None)
                     if not pacer:
                         self.observation.sleep(random.randint(*sleep_between), 'click_wait')
                     self.observation.arm(job_item, region_name, retry, record=record)
                     if pacer:
-                        record['click_gap_seconds'] = pacer.start()
+                        pacer.wait()
+                    if readiness:
+                        self.observation.wait_clickable(record, readiness['timeout_seconds'])
+                    if pacer:
+                        # Anchor the next interval to the actual click command,
+                        # including any extra time spent waiting for movement.
+                        record['click_gap_seconds'] = pacer.mark_start()
                     record['click_started_seconds'] = time.monotonic() - self.observation.started
                     record['salary_audit'] = audit
                     job_item.click()
@@ -181,6 +208,9 @@ class Recru_It_Spider(scrapy.Spider):
                     outcome = 'verified'
                 except ElementClickInterceptedException:
                     outcome = 'click_intercepted'
+                except ClickNotReady as error:
+                    outcome = 'click_not_ready'
+                    record['reason'] = str(error)
                 except FormatMismatch as error:
                     outcome = 'format_mismatch'
                     record['reason'] = str(error)
@@ -207,7 +237,8 @@ class Recru_It_Spider(scrapy.Spider):
                         self.observation.drain()
                     finally:
                         self.observation.finish_attempt(record, outcome)
-                        elapsed = time.monotonic() - attempt_started
+                        # Region waiting was outside this timer in prior versions.
+                        elapsed = time.monotonic() - attempt_started - region_phase_seconds
                         self.observation.stats['seconds']['retry' if retry else 'first_attempt'] += elapsed
                 if raw is not None:
                     break

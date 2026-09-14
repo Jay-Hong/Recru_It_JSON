@@ -18,6 +18,56 @@
   const requests = [];
   let attempt = null, sequence = 0, diagnosticErrors = 0, cachedVue = null;
   let listVm = null, listEvents = 0, listComplete = false;
+  let movement = null;
+  function movementSample() {
+    if (!movement) throw Error('movement_observer_unavailable');
+    const m = movement, now = performance.now(), card = m.card;
+    let reason = 'detached', geometry = [], point = null;
+    if (card.isConnected && card.getClientRects().length) {
+      const r = card.getClientRects()[0];
+      geometry = [r.x, r.y, r.width, r.height];
+      for (let parent = card.parentElement; parent; parent = parent.parentElement) {
+        geometry.push(parent.scrollLeft, parent.scrollTop);
+      }
+      geometry.push(window.scrollX, window.scrollY);
+      // Match WebDriver's in-view center, including viewport clipping. The
+      // hit test also catches clipping/covering by a nested scrolling container.
+      const left = Math.max(0, Math.min(r.x, r.x + r.width));
+      const right = Math.min(innerWidth, Math.max(r.x, r.x + r.width));
+      const top = Math.max(0, Math.min(r.y, r.y + r.height));
+      const bottom = Math.min(innerHeight, Math.max(r.y, r.y + r.height));
+      reason = 'outside_view';
+      if (right > left && bottom > top) {
+        point = [Math.floor((left + right) / 2), Math.floor((top + bottom) / 2)];
+        const hit = document.elementFromPoint(...point);
+        reason = card.matches(':disabled') ? 'disabled' :
+          hit && (hit === card || card.contains(hit)) ? 'ready' : 'obstructed';
+      }
+    }
+    const changed = !m.geometry || geometry.length !== m.geometry.length ||
+      geometry.some((value, i) => Math.abs(value - m.geometry[i]) > 0.01);
+    if (changed) m.changes++;
+    // A paused observer cannot establish continuous stability. Compare against
+    // a stable anchor, so tiny movements cannot accumulate unnoticed.
+    if (changed || reason !== 'ready' || m.reason !== 'ready' || now - m.sampled > 100) {
+      m.since = now;
+      m.geometry = geometry;
+    }
+    if (reason === 'obstructed') m.obstructed++;
+    m.reason = reason;
+    m.sampled = now;
+    m.state = {ok: reason === 'ready' && now - m.since >= m.stableMs,
+      reason: reason === 'ready' && now - m.since < m.stableMs ? 'moving' : reason,
+      stable_seconds: (now - m.since) / 1000, elapsed_seconds: (now - m.started) / 1000,
+      position_changes: m.changes, obstructed_samples: m.obstructed, point};
+    return m.state;
+  }
+  function stopMovement(number) {
+    if (movement && (number === undefined || movement.number === number)) {
+      cancelAnimationFrame(movement.frame);
+      movement = null;
+    }
+  }
   const vue = () => {
     const list = document.querySelector('.scrollsection');
     if (cachedVue && !cachedVue._isDestroyed && cachedVue.$el.contains(list)) return cachedVue;
@@ -197,6 +247,23 @@
   new MutationObserver(observeReady).observe(document, {subtree: true, childList: true, characterData: true, attributes: true});
   window.__recruObserver = {
     selectors,
+    beginMovement(card, number, stableSeconds) {
+      stopMovement();
+      const now = performance.now();
+      movement = {card, number, stableMs: stableSeconds * 1000, started: now,
+        sampled: now, since: now, geometry: null, changes: 0, obstructed: 0};
+      const tick = () => {
+        if (!movement || movement.number !== number) return;
+        movementSample();
+        movement.frame = requestAnimationFrame(tick);
+      };
+      tick();
+    },
+    movementStatus(number) {
+      if (!movement || movement.number !== number) throw Error('movement_attempt_mismatch');
+      return movementSample();
+    },
+    stopMovement,
     listState() {
       const vm = vue();
       if (listVm !== vm) {

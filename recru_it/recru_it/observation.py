@@ -37,6 +37,10 @@ class ObservationUnavailable(Exception):
     """The browser or page-wide evidence is unavailable; stop the run."""
 
 
+class ClickNotReady(Exception):
+    """The target did not settle at an unobstructed click point in time."""
+
+
 def quiet_browser_logging():
     # WebDriver DEBUG includes full script results and performance-log payloads.
     # Keep crawler diagnostics enabled, but never log these transport payloads.
@@ -256,6 +260,30 @@ class Observation:
             raise EvidenceUnavailable('cannot_arm_observation') from error
         return record
 
+    def begin_movement(self, card, record, stable_seconds):
+        self.require_observer()
+        self.driver.execute_script(
+            'window.__recruObserver.beginMovement(arguments[0], arguments[1], arguments[2])',
+            card, record['number'], stable_seconds)
+
+    def wait_clickable(self, record, timeout):
+        started = time.monotonic()
+        try:
+            while True:
+                self.drain()
+                state = self.driver.execute_script(
+                    'return window.__recruObserver.movementStatus(arguments[0])', record['number'])
+                record['click_readiness'] = state
+                if state['ok']:
+                    return
+                if time.monotonic() - started >= timeout:
+                    raise ClickNotReady(state['reason'])
+                self.sleep(.05, 'click_ready_poll')
+        finally:
+            elapsed = time.monotonic() - started
+            record['click_ready_wait_seconds'] = elapsed
+            self.stats['seconds']['click_readiness_check'] += elapsed
+
     def read(self, timeout=3):
         """Read only when identity, request completion, and every field agree."""
         started = time.monotonic()
@@ -308,7 +336,9 @@ class Observation:
         record['outcome'] = outcome
         self.stats['counts'][outcome] += 1
         try:
-            page = self.driver.execute_script('return window.__recruObserver.summary(arguments[0])', record['number'])
+            page = self.driver.execute_script(
+                'window.__recruObserver.stopMovement(arguments[0]); '
+                'return window.__recruObserver.summary(arguments[0])', record['number'])
             if page['attempt'] and page['attempt']['number'] == record['number']:
                 record['ready_seconds'] = page['attempt']['readySeconds']
                 clicked = page['attempt'].get('clicked')

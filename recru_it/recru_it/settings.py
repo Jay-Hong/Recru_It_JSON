@@ -104,9 +104,10 @@ CRAWL_CONFIG = {
         'salary_prefilter': True,
         'salary_audit_rate': 0.2,
         'click_interval': (1.6, 2.8),  # None restores regional waits + 0.5 seconds.
+        'click_readiness': {'stable_seconds': 0.2, 'timeout_seconds': 5},
         'scroll_interval': (1.5, 2.5),  # None restores the original scrolling loop.
     },
-    'scroll_range': (50, 53),           # 스크롤 반복 횟수 (min, max)
+    'scroll_range': (54, 58),           # 기존 수집량에 가깝게 보정; 공고 수 보장은 아님.
     'initial_sleep': (2, 13),           # 초기 페이지 로드 대기 시간 (초)
 
     'regions': [

@@ -64,7 +64,11 @@ def validate(items, stats, run_id, minimum=50):
         problems.append('pipeline counts do not match verified and manual items')
     if sum(stats['drop_reasons'].values()) != stats['dropped']:
         problems.append('filter reason counts do not match dropped items')
-    allowed_outcomes = {'verified', 'click_intercepted', 'format_mismatch',
+    if options.get('click_readiness') and any(
+            (attempt.get('outcome') == 'verified' or 'click_started_seconds' in attempt) and
+            attempt.get('click_readiness', {}).get('ok') is not True for attempt in attempts):
+        problems.append('click without position readiness evidence')
+    allowed_outcomes = {'verified', 'click_intercepted', 'click_not_ready', 'format_mismatch',
                         'evidence_unavailable', 'verification_failed', 'browser_error'}
     if any(attempt.get('outcome') not in allowed_outcomes for attempt in attempts):
         problems.append('unfinished or aborted click attempt')
