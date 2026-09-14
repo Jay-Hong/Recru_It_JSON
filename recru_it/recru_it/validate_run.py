@@ -49,6 +49,15 @@ def validate(items, stats, run_id, minimum=50):
                 not (collection.get('ended') is True or collection.get('completed') == collection.get('planned')) or
                 any(s.get('outcome') not in ('grown', 'complete', 'initial_no_request') for s in stats.get('scrolls', []))):
             problems.append('list collection did not complete')
+        if options.get('list_readiness'):
+            final = collection.get('final_state', {})
+            inventory = collection.get('inventory', {})
+            if (collection.get('readiness_version') != 1 or final.get('pending') is not False
+                    or final.get('count', -1) != final.get('modelCount', -2)
+                    or final.get('count', -1) != inventory.get('count', -2)
+                    or inventory.get('hidden') != 0
+                    or not 0 <= collection.get('requests', -1) <= collection.get('max_requests', -2)):
+                problems.append('bounded list collection did not settle')
     verified = sum(region.get('verified', 0) for region in regions.values())
     if counts.get('final_failed', 0) != sum(region.get('failed', 0) for region in regions.values()):
         problems.append('final failure counts do not match regions')

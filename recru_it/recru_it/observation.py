@@ -217,6 +217,82 @@ class Observation:
                 raise EvidenceUnavailable('list_did_not_settle_or_grow')
             self.sleep(.1, 'scroll_ready_wait')
 
+    def park_list(self):
+        # Leave the infinite loader's viewport without changing its model,
+        # request callbacks, or page counter. In-flight responses still finish.
+        self.driver.execute_script('''
+            const card = document.querySelector('div.scrollsection > div.box.pointer');
+            if (!card) throw Error('list_anchor_unavailable');
+            card.scrollIntoView({block: 'start', inline: 'nearest', behavior: 'instant'});
+        ''')
+
+    def wait_list_bounded(self, before, record, limits, budget, first=False):
+        started = last_progress = time.monotonic()
+        previous = None
+        last_signature = None
+        stable_since = None
+        parked = False
+        while True:
+            state = self.list_state()
+            now = time.monotonic()
+            elapsed = now - started
+            record['last_state'] = state
+            delta = state['requestsStarted'] - before['requestsStarted']
+            total = state['requestsStarted'] - budget['initial_requests']
+            reason = None
+            if delta < 0 or total < 0 or state['count'] < before['count']:
+                reason = 'list_state_regressed'
+            elif delta > limits['max_requests_per_scroll'] or total > budget['max_requests']:
+                reason = 'list_request_budget_exceeded'
+            elif now - budget['started'] >= limits['total_seconds']:
+                reason = 'list_collection_timeout'
+            elif elapsed >= limits['timeout_seconds']:
+                reason = 'list_scroll_timeout'
+            progress = (state['count'], state['modelCount'], state['events'])
+            if previous is None or progress != previous:
+                last_progress = now
+                previous = progress
+            if reason is None and now - last_progress >= limits['idle_seconds']:
+                reason = 'list_progress_stalled'
+            if reason:
+                record['failure_reason'] = reason
+                raise EvidenceUnavailable(reason)
+
+            # As soon as the requested load starts, leave its trigger. Waiting
+            # until a chain has already filled the viewport sends extra pages.
+            if not parked and (delta > 0 or state['count'] > before['count'] or state['complete']):
+                self.park_list()
+                parked = True
+                record['parked_after_seconds'] = elapsed
+                record['requests_at_park'] = delta
+                stable_since = None
+
+            settled = not state['pending'] and state['count'] == state['modelCount']
+            signature = (state['count'], state['modelCount'], state['events'], state['requestsStarted'])
+            if not settled or stable_since is None or signature != last_signature:
+                stable_since = now if settled else None
+            last_signature = signature
+            stable = stable_since is not None and now - stable_since >= limits['stable_seconds']
+            if parked and settled and stable and (state['complete'] or state['count'] > before['count']):
+                return state, 'complete' if state['complete'] else 'grown', elapsed
+            if (first and elapsed >= 2.5 and settled and stable and delta == 0
+                    and state['count'] == before['count'] and state['events'] == before['events']):
+                return state, 'initial_no_request', elapsed
+            self.sleep(.1, 'scroll_ready_wait')
+
+    def list_inventory(self):
+        return self.driver.execute_script('''
+            const cards = [...document.querySelectorAll('div.scrollsection > div.box.pointer')];
+            let hidden = 0, emptySite = 0;
+            for (const card of cards) {
+                const r = card.getBoundingClientRect();
+                if (r.width <= 0 || r.height <= 0 || !window.__recruDisplayed(card, false)) hidden++;
+                const site = card.querySelector('div.sub_info.foot div.ft12');
+                if (!site || !site.innerText.replace('location_on', '').trim()) emptySite++;
+            }
+            return {count: cards.length, hidden, empty_site: emptySite};
+        ''')
+
     def compare_cards(self, simple, sites, pays):
         overview = self.driver.execute_script('return window.__recruObserver.overview()')
         self.stats['user_agent'] = overview['userAgent']

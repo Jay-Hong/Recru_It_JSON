@@ -106,6 +106,10 @@ CRAWL_CONFIG = {
         'click_interval': (1.6, 2.8),  # None restores regional waits + 0.5 seconds.
         'click_readiness': {'stable_seconds': 0.2, 'timeout_seconds': 5},
         'scroll_interval': (1.5, 2.5),  # None restores the original scrolling loop.
+        'list_readiness': {
+            'idle_seconds': 5, 'timeout_seconds': 10, 'stable_seconds': 0.2,
+            'max_requests_per_scroll': 4, 'extra_request_budget': 8, 'total_seconds': 240,
+        },  # Limits abort an incomplete run; they never declare collection complete.
     },
     'scroll_range': (54, 58),           # 기존 수집량에 가깝게 보정; 공고 수 보장은 아님.
     'initial_sleep': (2, 13),           # 초기 페이지 로드 대기 시간 (초)
