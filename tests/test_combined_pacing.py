@@ -161,6 +161,21 @@ class ListReadinessTests(unittest.TestCase):
             _, outcome, _ = self.observer.wait_list(self.before, first=True)
         self.assertEqual(outcome, 'initial_no_request')
 
+    def test_growing_list_with_pending_requests_records_timeout_without_relaxing_readiness(self):
+        state = {**self.before, 'count': 855, 'modelCount': 855, 'events': 56,
+                 'pending': True, 'unexpected_payload': 'private-fixture'}
+        self.observer.list_state = Mock(return_value=state)
+        with patch('recru_it.observation.time.monotonic', self.clock):
+            with self.assertRaises(EvidenceUnavailable):
+                self.observer.wait_list(self.before, timeout=.3)
+        record = self.observer.stats['list_timeouts'][0]
+        self.assertEqual(record['before_count'], self.before['count'])
+        self.assertGreaterEqual(record['seconds'], .3)
+        self.assertEqual(record['state']['count'], 855)
+        self.assertTrue(record['state']['pending'])
+        self.assertFalse(record['state']['complete'])
+        self.assertNotIn('private-fixture', str(self.observer.stats))
+
     def test_explicit_end_and_server_limit(self):
         _, outcome, _ = self.wait([{**self.before, 'complete': True, 'events': 1}])
         self.assertEqual(outcome, 'complete')
