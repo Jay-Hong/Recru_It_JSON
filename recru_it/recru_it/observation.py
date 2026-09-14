@@ -93,7 +93,7 @@ class Observation:
             'complete': False, 'regions': {}, 'counts': Counter(),
             'seconds': defaultdict(float), 'attempts': [], 'scrolls': [],
             'diagnostics': Counter(), 'format_mismatches': Counter(),
-            'drop_reasons': Counter(), 'identity_diagnostics_version': 1,
+            'drop_reasons': Counter(), 'identity_diagnostics_version': 1, 'list_timeouts': [],
         }
         self.driver.execute_cdp_cmd('Network.enable', {})
         self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
@@ -208,6 +208,12 @@ class Observation:
                     and state['events'] == before['events']):
                 return state, 'initial_no_request', elapsed
             if elapsed >= timeout:
+                # Preserve why readiness failed without relaxing the existing
+                # pending-request, model/DOM count, or completion requirements.
+                self.stats['list_timeouts'].append({
+                    'before_count': before['count'], 'seconds': elapsed,
+                    'state': {key: state[key] for key in ('count', 'modelCount', 'pending', 'events', 'complete')},
+                })
                 raise EvidenceUnavailable('list_did_not_settle_or_grow')
             self.sleep(.1, 'scroll_ready_wait')
 
