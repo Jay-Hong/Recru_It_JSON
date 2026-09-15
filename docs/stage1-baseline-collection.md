@@ -1,8 +1,9 @@
-# 1단계 정기 실행 기준선 수집
+# 정기 실행 기준선 수집
 
-master의 `22b1c9d`에는 시험을 통과한 1단계가 반영됐다. 다음은 같은 운영 코드로
-정기 실행 3~5회의 기록을 모으고, 수집량·오류·지연을 비교하는 단계다.
-시험 브랜치 실행 `34787754917`은 참고 자료이며 정기 실행 횟수에 포함하지 않는다.
+2026-09-15 현재는 목록 보완 코드 `57e8d4b`의 정기 실행 3~5회를 모은다.
+수동 시험 `34911124421`은 참고 자료이며 정기 실행 횟수에 포함하지 않는다.
+아래 1단계 기록은 과거 이력으로 보존한다. 유지보수 등으로 운영 코드·의존성·워크플로가
+바뀌면 새 코드 SHA를 별도 `--cohort`로 등록하고, 이전 단계와 같은 기준선으로 합치지 않는다.
 
 ## 실행 방법
 
@@ -10,8 +11,9 @@ master의 `22b1c9d`에는 시험을 통과한 1단계가 반영됐다. 다음은
 
 ```sh
 python3 -B scripts/collect_stage1_baseline.py \
-  --output "$HOME/Documents/Recru_It_JSON_measurements/stage1" \
-  --reference-run 34787754917
+  --output "$HOME/Documents/Recru_It_JSON_measurements/regular-runs" \
+  --cohort list-settling=57e8d4b82e2b5343bfb7af78e2273a0bdccf6bb2 \
+  --reference-run 34911124421
 ```
 
 새 단계의 코드가 커밋되면 `--cohort stage2-waits=<코드커밋SHA>`를 추가한다.
@@ -29,6 +31,8 @@ python3 -B scripts/collect_stage1_baseline.py \
   표에 남긴다. GitHub API 조회 자체가 실패하면 오류로 종료하며 기존 보고서를 최신으로 표시하지 않는다.
 - 이 명령은 GitHub 읽기와 `git fetch`만 수행한다. 크롤러 실행, workflow dispatch,
   결과 반영, 브랜치 변경, commit/push, 자동 감시는 수행하지 않는다.
+- 정기 실행이 끝난 뒤 다시 실행해야 새 기록이 보관된다. 이 문서나 명령 준비만으로
+  향후 실행 검토가 자동 예약되지는 않는다. 통계 artifact는 14일 안에 보관한다.
 
 ## 비교 기준
 

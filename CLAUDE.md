@@ -1,587 +1,121 @@
-# Recru_It - 건설업 채용정보 크롤러
+# Recru_It 운영·개발 안내
 
-> 한국 건설업 일용직 채용 정보를 일다오(ildao.com)에서 자동 수집하는 Scrapy 기반 웹 크롤러
+건설업 채용정보를 Scrapy와 Selenium으로 수집하고, 검증을 통과한 결과만 JSON으로 반영한다.
+이 문서는 현재 코드의 안내서다. 변경·커밋·푸시 승인 정책은 사용자의 현재 지시와
+`~/.claude/CLAUDE.md`, 적용되는 `AGENTS.md`를 따른다. 이 문서가 새 권한을 부여하지 않는다.
 
----
+## 먼저 볼 파일
 
-## 📋 목차
+| 파일 | 역할 |
+| --- | --- |
+| `recru_it/recru_it/settings.py` | 수집 간격·상한·지역·수동 공고 설정 |
+| `recru_it/recru_it/spiders/recru_it.py` | 목록·지역 순회, 재시도, 검증한 값의 정제 |
+| `recru_it/recru_it/pacing.py` | 시작 간격 관리, 좁은 급여 사전 제외 조건 |
+| `recru_it/recru_it/observer.js` | 페이지 안의 목록·이동·공고 식별 관측 |
+| `recru_it/recru_it/observation.py` | 브라우저 관측, 원자적 읽기, 네트워크 통계 |
+| `recru_it/recru_it/validate_run.py` | 결과 반영 전 검증, 개별 실패 경고 |
+| `recru_it/recru_it/pipelines.py` | 기존 필터와 제목·연락처 중복 제거 |
+| `.github/workflows/main.yml` | 설치·수집·검증·통계 업로드·결과 반영 |
+| `scripts/collect_stage1_baseline.py` | GitHub 실행 기록과 통계의 읽기 전용 집계 |
 
-- [프로젝트 개요](#프로젝트-개요)
-- [주요 기능](#주요-기능)
-- [설치 및 실행](#설치-및-실행)
-- [프로젝트 구조](#프로젝트-구조)
-- [설정 가이드](#설정-가이드)
-- [크롤링 동작 방식](#크롤링-동작-방식)
-- [개발 가이드](#개발-가이드)
-- [트러블슈팅](#트러블슈팅)
+## 현재 수집 동작
 
----
+설정의 기준은 `settings.py:CRAWL_CONFIG`, 순서는 스파이더의 `parse`, `scroll_list`,
+`process_region`이다. 아래 값은 2026-09-15 코드 기준이며 변경 시 코드와 함께 갱신한다.
 
-## 프로젝트 개요
+- 첫 페이지 대기: 2~13초.
+- 목록 스크롤: 54~58회 계획, 시작 간격 1.5~2.5초. 명시적 목록 끝이면 일찍 종료한다.
+  목록 810~870개는 관측 패턴에 따른 예상 범위이며 완료 조건이나 보장이 아니다.
+- 목록 요청 시작을 관측하면 위쪽으로 이동해 자동 연속 로딩을 줄인다. 진행 요청·로딩 표시가
+  꺼지고 화면/모델 수가 일치하며 0.2초 동안 안정돼야 준비 완료다.
+  시간·요청 상한에 걸리면 불완료로 중단하며, 모인 만큼을 정상 결과로 인정하지 않는다.
+- 상세 클릭: 시작 간격 1.6~2.8초(분포 평균 2.2초). 느린 처리로 초과한 시간은 허용하며
+  밀린 클릭을 연달아 보내지 않는다. 현재 설정에서는 클릭 후 0.5초 고정 대기 대신 준비를 확인한다.
+- 지역 첫 실제 클릭 대상에 먼저 이동한 뒤 1~4초 지역 대기를 한다. 실제 클릭 대상이 없으면 생략한다.
+- 클릭 전 위치가 0.2초 이상 안정되고 클릭 지점이 가려지지 않았는지 확인한다. 대기 상한은 5초다.
+- 공고 단위 오류는 최대 한 번 재시도한다. 확인되지 않은 공고는 저장하지 않는다.
+  서버 제한(관측된 사이트 응답 429·503), 페이지 전체 관측 손실 등은 실행을 중단한다.
+- 종료 직전의 별도 대기는 없다.
 
-### 기술 스택
-- **Python 3.x**
-- **Scrapy**: 웹 크롤링 프레임워크
-- **Selenium**: JavaScript 렌더링 및 동적 페이지 처리
-- **ChromeDriver**: 브라우저 자동화 (webdriver_manager로 자동 관리)
+17개 지역 순서는 설정의 `regions`를 따른다. `item_limit=450`은 해당 지역의 공고 450개가
+아니라 **전체 목록의 인덱스가 450 미만인 카드**라는 뜻이다. 간편지원과 기존 시작 위치 규칙도 적용된다.
+수동 공고는 각 지역의 수집 공고보다 먼저 파이프라인에 전달된다.
 
-### 수집 데이터
-- 제목, 근무지, 직종, 급여
-- 조건(숙식제공, 4대보험, 출퇴근가능, 장기근무)
-- 필요 인원, 연락처, 상세 내용, 이미지 URL
+## 급여·본문·이미지 검증
 
-### 대상 지역 (17개)
-서울, 부산, 경기, 인천, 충남, 충북, 대전, 세종, 전남, 광주, 전북, 경남, 울산, 경북, 대구, 강원, 그외
+- 급여 사전 제외는 카드 데이터와 표시 금액이 일치하고, 단위가 일급 또는 월급이며
+  100,000원 이상 150,000원 미만일 때만 적용한다. 단위·금액이 불확실하면 상세 수집으로 보낸다.
+- 첫 제외 후보는 반드시 상세 확인하며 이후 후보는 20% 확률로 표본 확인한다.
+  선택된 표본의 확인 실패·불일치 또는 표본 없는 사전 제외는 전체 반영을 막는다.
+- 공고 카드 ID, 새 상세 모델, 이번 시도와 연결한 요청, 저장할 화면 값을 함께 확인한다.
+  페이지 안에서 한 번에 읽고 검증한 값을 그대로 정제에 사용한다.
+- 기존 Selenium 텍스트 읽기와 형식 비교를 유지한다. 형식 불일치는 해당 공고 시도의 실패다.
+- 이미지 검증은 모집요강 `recuritImg`에 대응하는 전체 주소를 대상으로 한다.
+  주소를 저장하므로 이미지 다운로드 완료까지 기다리지는 않는다.
+- `pipelines.py`의 기존 급여 정규식은 좁은 사전 제외 조건보다 넓다. 두 조건을 같은 것으로
+  간주해 필터를 옮기거나 출력 결과가 같다고 추정하지 않는다.
 
----
+상세 내용: [통합 간격 변경](docs/combined-pacing.md),
+[연속 목록 로딩 보완](docs/list-settling.md), [식별 진단](docs/identity-diagnostics.md).
 
-## 주요 기능
+## 결과 반영과 통계
 
-### 1. 자동화된 웹 스크래핑
-- Selenium 기반 동적 렌더링 페이지 크롤링
-- 무작위 대기 시간으로 탐지 회피
-- 167개 User-Agent 로테이션
-- 11개 윈도우 크기 랜덤화
+결과는 `jobInfo.json`, `config.json`, `recru_it/recru_result.json`에 같은 목록 형식으로 저장한다.
+각 항목의 문자열 필드는 `title`, `site`, `type`, `pay`, `etc1`, `etc2`, `etc3`,
+`numpeople`, `phone`, `detail`, `imageURL`, `time`, `sponsored`다.
 
-### 2. 지역별 크롤링
-- 17개 지역별 설정 관리 (`settings.py`)
-- 지역별 아이템 수 제한 (경기/인천/충북: 450개)
-- 지역별 대기 시간 개별 설정
+`validate_run.py:validate`는 실행 ID, 목록·지역 완료, 집계 관계, 급여 표본, 카드 비교,
+검증 시도와 결과 스키마를 검사한다. 저장 결과는 50건 이상이어야 한다.
 
-### 3. 수동 채용정보 추가
-- 지역별로 채용정보 수동 추가 가능
-- JSON 결과에서 각 지역의 **맨 앞**에 배치
-- 설정 파일(`settings.py`)에서 간편 관리
+- 전체 검증 실패 시 복사·커밋·푸시가 진행되지 않아 마지막 정상 결과가 유지된다.
+- 일반 개별 공고 실패·형식 불일치는 경고를 남기며, 다른 정상 공고의 반영을 항상 막는 것은 아니다.
+  급여 확인 표본 실패는 위에서 설명한 전체 차단 예외다. 임의 실패율 기준은 아직 없다.
+- 실행 성공 표시와 함께 품질 경고·전체/지역별 실패를 확인한다. 실패 알림 메일은 사용자 수신 확인 완료다.
+- 통계는 `recru-stats-<run_id>-<attempt>` artifact의 `recru-stats.json`으로 14일 보관한다.
+  업로드 실패는 결과 반영을 막지 않으므로 통계 누락 여부도 확인한다.
+- 진단에는 숫자 코드·공고 ID·상태·시간을 남기며 상세 응답 본문을 추가 보관하지 않는다.
+  Selenium/urllib3 통신 로그는 WARNING이다. 기존 Scrapy 로그에는 공고 내용이 남을 수 있다.
 
-### 4. 데이터 정제 및 필터링
-- 100+ 개 정규식 기반 텍스트 정제
-- 오타 자동 수정
-- 중복 제거 (제목/연락처 기반)
-- 저품질 공고 필터링
+## Actions와 의존성
 
----
+- 예약: 매일 UTC 18:25 / KST 03:25. 실제 시작은 GitHub 사정으로 늦어질 수 있다.
+- 실행기: `ubuntu-latest`, 작업 상한 45분, `recru-collection` 동시 실행 그룹.
+- 수동 실행은 지정 브랜치를 체크아웃하고 결과도 그 브랜치에 푸시한다. master 결과를 자동 갱신하는
+  시험이 되지 않도록 브랜치를 확인한다. 결과 JSON 커밋이 들어 있는 시험 브랜치 전체를 합치지 않는다.
+- 회귀 테스트는 수동 실행에서 수집 전에 수행한다. 정기 실행에서는 별도 회귀 테스트를 하지 않는다.
+- `requirements.txt`는 성공한 Actions 환경의 Scrapy 2.19.0, webdriver_manager 4.1.2,
+  Selenium 4.35.0을 고정한다. Selenium 내부의 `isDisplayed.js`도 검증에 사용한다.
+  하위 의존성·Chrome·실행기 이미지는 완전히 고정돼 있지 않다.
+- 브라우저 기본 User-Agent를 사용한다. 무효였던 UA 인자와 무작위 목록은 유지보수 변경에서 제거한다.
+  관측된 기본값은 HeadlessChrome이며, 과거 전체의 UA나 차단 여부를 이 사실로 단정하지 않는다.
 
-## 설치 및 실행
+## 작업과 검증 명령
 
-### 1. 의존성 설치
+외부 사이트에 접속하지 않는 회귀 테스트:
 
-```bash
-pip install -r requirements.txt
+```sh
+python3 -m pip install -r requirements.txt
+python3 -B -m unittest discover -s tests -p 'test_*.py'
 ```
 
-**requirements.txt:**
-```
-webdriver_manager
-scrapy
-selenium
-```
+실제 수집은 사이트 요청과 결과 파일 변경을 발생시킨다. 필요한 경우 아래처럼 실행 ID와 통계
+경로를 정해 수집 후 검증한다. 통계 경로는 저장소 밖에 두고, 결과를 운영 파일로 복사하기 전에 검사한다.
 
-### 2. 크롤러 실행
-
-```bash
-# 프로젝트 디렉토리로 이동
+```sh
 cd recru_it
-
-# 크롤러 실행
+export RECRU_RUN_ID="local-$(date +%Y%m%d-%H%M%S)"
+export RECRU_STATS_PATH="$HOME/Documents/Recru_It_JSON_measurements/$RECRU_RUN_ID.json"
 scrapy crawl recru_it
+python3 -m recru_it.validate_run
 ```
 
-### 3. 결과 확인
-
-크롤링 완료 후 `recru_result.json` 파일이 생성됩니다.
-
-```bash
-# JSON 파일 확인
-cat recru_result.json | python3 -m json.tool | head -50
-```
-
----
-
-## 프로젝트 구조
-
-```
-Recru_It_JSON/
-├── recru_it/                           # Scrapy 프로젝트 루트
-│   ├── scrapy.cfg                     # Scrapy 설정 파일
-│   └── recru_it/                      # 메인 패키지
-│       ├── __init__.py
-│       ├── items.py                   # 데이터 모델 (11개 필드)
-│       ├── settings.py                # ⭐ 크롤링 설정 (중요)
-│       ├── pipelines.py               # 데이터 필터링 & 중복 제거
-│       ├── middlewares.py             # 미들웨어
-│       └── spiders/                   # 스파이더 모듈
-│           ├── __init__.py
-│           ├── constants.py           # 167개 UA, 윈도우 크기, 언어
-│           └── recru_it.py           # ⭐ 메인 크롤러
-├── config.json                        # 크롤링 결과 데이터
-├── jobInfo.json                       # 크롤링 결과 데이터
-├── requirements.txt                   # 프로젝트 의존성
-├── CLAUDE.md                          # 이 파일
-└── README.md                          # 프로젝트 설명 (있다면)
-```
-
-### 주요 파일 설명
-
-| 파일 | 역할 | 라인 수 |
-|------|------|---------|
-| `settings.py` | 크롤링 설정 (지역, 대기시간, 수동 아이템) | ~300줄 |
-| `recru_it.py` | 메인 크롤러 로직 | ~380줄 |
-| `constants.py` | User-Agent, 윈도우 크기, 언어 상수 | ~180줄 |
-| `items.py` | 데이터 모델 정의 | ~20줄 |
-| `pipelines.py` | 데이터 필터링 및 중복 제거 | ~100줄 |
-
----
-
-## 설정 가이드
-
-### 1. 지역별 크롤링 설정 (`settings.py`)
-
-**위치**: `recru_it/recru_it/settings.py` (101~246번 라인)
-
-```python
-CRAWL_CONFIG = {
-    'scroll_range': (50, 53),           # 스크롤 반복 횟수
-    'initial_sleep': (2, 13),           # 초기 페이지 로드 대기 시간
-
-    'regions': [
-        {
-            'name': '서울',
-            'keywords': ['서울'],
-            'exclude_keywords': [],
-            'item_limit': None,         # None = 제한 없음
-            'sleep_before': (2, 5),     # 지역 크롤링 전 대기 (초)
-            'sleep_between': (1, 6),    # 각 아이템 클릭 전 대기 (초)
-        },
-        # ... 17개 지역 설정
-    ]
-}
-```
-
-#### 설정 항목 설명
-
-| 항목 | 설명 | 예시 |
-|------|------|------|
-| `name` | 지역 이름 | `'서울'`, `'부산'` |
-| `keywords` | 지역 필터링 키워드 | `['서울']`, `['경기']` |
-| `exclude_keywords` | 제외 키워드 | `['부산']` (대구 검색 시 "부산 해운대구" 제외) |
-| `item_limit` | 아이템 수 제한 | `450` (경기/인천/충북), `None` (제한 없음) |
-| `sleep_before` | 지역 크롤링 전 대기 | `(2, 5)` = 2~5초 랜덤 |
-| `sleep_between` | 아이템 클릭 전 대기 | `(1, 6)` = 1~6초 랜덤 |
-
-#### 새로운 지역 추가 방법
-
-```python
-{
-    'name': '제주',
-    'keywords': ['제주'],
-    'exclude_keywords': [],
-    'item_limit': None,
-    'sleep_before': (3, 7),
-    'sleep_between': (1, 4),
-},
-```
-
-### 2. 수동 채용정보 추가 (`settings.py`)
-
-**위치**: `recru_it/recru_it/settings.py` (248~300번 라인)
-
-```python
-MANUAL_JOBS_BY_REGION = {
-    '서울': [
-        # 서울 지역 수동 아이템
-    ],
-    '부산': [
-        {
-            'title': '부산 양정 롯데 설비이중관 기공',
-            'site': '부산 부산진구',
-            'type': '설비',
-            'pay': '일급 20만원',
-            'etc1': '4대보험',
-            'etc2': '',
-            'etc3': '',
-            'numpeople': '1명',
-            'phone': '010-1234-5678',
-            'detail': '양정 롯데건설\n설비이중관 기공 작업자 구합니다.',
-            'imageURL': '',
-            'time': '',
-            'sponsored': ''
-        },
-    ],
-    # ... 17개 지역
-}
-```
-
-#### 필수 필드 (11개)
-
-| 필드 | 설명 | 예시 |
-|------|------|------|
-| `title` | 공고 제목 | `'부산 해운대 전기 조공 모집'` |
-| `site` | 근무지 | `'부산 해운대구'` |
-| `type` | 직종 | `'전기'`, `'비계/동바리'` |
-| `pay` | 급여 | `'일급 17만원 이상'` |
-| `etc1` | 조건1 | `'숙식제공'`, `'4대보험'` |
-| `etc2` | 조건2 | `'출퇴근가능'`, `'장기근무'` |
-| `etc3` | 조건3 | `''` (빈 문자열 가능) |
-| `numpeople` | 필요 인원 | `'2명'`, `'상시'` |
-| `phone` | 연락처 | `'010-1234-5678'` |
-| `detail` | 상세 내용 | `'현장 주소:\n...'` |
-| `imageURL` | 이미지 URL | `''` (대부분 빈값) |
-| `time` | 등록 시간 | `''` (현재 미사용) |
-| `sponsored` | 광고 여부 | `''` (현재 미사용) |
-
-#### 수동 아이템 추가 예시
-
-```python
-'경기': [
-    {
-        'title': '평택 고덕 전기 포설 조공 모집',
-        'site': '경기 평택시 고덕면',
-        'type': '전기',
-        'pay': '일급 18만원 이상',
-        'etc1': '4대보험',
-        'etc2': '출퇴근가능',
-        'etc3': '',
-        'numpeople': '3명',
-        'phone': '010-2222-3333',
-        'detail': '평택 고덕 아파트 신축 현장\n전기 포설 조공 경력 2년 이상\n출퇴근 가능자 우대',
-        'imageURL': '',
-        'time': '',
-        'sponsored': ''
-    },
-],
-```
-
-### 3. 탐지 회피 설정 (`constants.py`)
-
-**위치**: `recru_it/recru_it/spiders/constants.py`
-
-```python
-USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...',
-    # ... 167개
-]
-
-WINDOW_SIZES = [
-    'window-size=3440x1440',
-    # ... 11개
-]
-
-LANG = [
-    'lang=ko_KR',
-    # ... 7개
-]
-```
-
----
-
-## 크롤링 동작 방식
-
-### 1. 전체 흐름
-
-```mermaid
-graph TD
-    A[시작] --> B[Selenium 초기화]
-    B --> C[페이지 로드 2-13초 대기]
-    C --> D[스크롤 39-52회 반복]
-    D --> E[아이템 리스트 수집]
-    E --> F[지역별 크롤링 시작]
-    F --> G{수동 아이템 있나?}
-    G -->|Yes| H[수동 아이템 먼저 yield]
-    G -->|No| I[크롤링 아이템 수집]
-    H --> I
-    I --> J[다음 지역으로]
-    J --> F
-    F --> K[종료]
-```
-
-### 2. 지역별 크롤링 순서
-
-1. **서울** → 2. **부산** → 3. **경기** (450개 제한) → 4. **인천** (450개 제한) → 5. **충남** → 6. **충북** (450개 제한) → 7. **대전** → 8. **세종** → 9. **전남** → 10. **광주** → 11. **전북** → 12. **경남** → 13. **울산** → 14. **경북** → 15. **대구** → 16. **강원** → 17. **그외**
-
-### 3. 각 지역 크롤링 프로세스
-
-```python
-for region_config in CRAWL_CONFIG['regions']:
-    # 1. 수동 아이템 먼저 추가 (있다면)
-    if region_name in MANUAL_JOBS_BY_REGION:
-        for job_data in MANUAL_JOBS_BY_REGION[region_name]:
-            yield job_item  # ⭐ 지역별 맨 앞에 배치
-
-    # 2. 크롤링 전 대기
-    time.sleep(random.randint(*sleep_before))
-
-    # 3. 크롤링 아이템 수집
-    for index, job_item in enumerate(ildao_items):
-        # 필터링 & 상세 정보 수집
-        yield job_item
-```
-
-### 4. 데이터 처리 파이프라인
-
-```
-크롤링 → Recru_It_Pipeline (필터링) → DuplicatesPipeline (중복 제거) → JSON 파일
-```
-
-**필터링 규칙** (`pipelines.py`):
-- 일급/월급 10~13만원 제거
-- "일다오" 포함 제거
-- 상세 내용 27자 미만 제거
-- 제목 6자 미만 제거
-- 특정 전화번호 제거 (6개)
-
-**중복 제거**:
-- 제목 기반 중복 검사
-- 연락처 기반 중복 검사
-
----
-
-## 개발 가이드
-
-### 코드 구조 (리팩토링 완료)
-
-#### Before (리팩토링 전)
-```python
-# 840줄, 465줄의 중복 코드
-# 서울 전체
-for index, job_item in enumerate(ildao_items):
-    if index >= first_no_simple and site_text_items[index].find('서울') >= 0:
-        # ... 27줄 반복 코드
-
-# 부산 전체
-for index, job_item in enumerate(ildao_items):
-    if index >= first_no_simple and site_text_items[index].find('부산') >= 0:
-        # ... 27줄 반복 코드
-
-# ... 17개 지역 반복
-```
-
-#### After (리팩토링 후)
-```python
-# 375줄, 중복 코드 0줄
-for region_config in CRAWL_CONFIG['regions']:
-    yield from self.process_region(...)  # 공통 로직
-```
-
-### 주요 메서드
-
-#### 1. `parse(self, response)` - 메인 크롤링 로직
-- Selenium으로 페이지 로드
-- 스크롤링으로 아이템 수집
-- 지역별 크롤링 실행
-
-#### 2. `process_region(...)` - 지역별 크롤링
-- 수동 아이템 먼저 yield
-- 크롤링 아이템 수집 및 yield
-- 지역별 설정 적용
-
-#### 3. `_matches_region(...)` - 지역 필터링
-- 키워드 매칭
-- 제외 키워드 체크
-- Boolean 반환
-
-#### 4. `get_job_detail()` - 상세 정보 추출
-- CSS 선택자로 데이터 추출
-- 100+ 개 정규식으로 텍스트 정제
-- 11개 필드 반환
-
-### 새로운 기능 추가 가이드
-
-#### 1. 새로운 지역 추가
-```python
-# settings.py의 CRAWL_CONFIG['regions']에 추가
-{
-    'name': '새지역',
-    'keywords': ['새지역'],
-    'exclude_keywords': [],
-    'item_limit': None,
-    'sleep_before': (3, 7),
-    'sleep_between': (1, 4),
-}
-
-# MANUAL_JOBS_BY_REGION에도 추가
-'새지역': [],
-```
-
-#### 2. 필터링 규칙 추가
-```python
-# pipelines.py의 Recru_It_Pipeline.process_item()에 추가
-if re.search('새로운 필터링 패턴', item['title']):
-    raise DropItem("필터링 사유")
-```
-
-#### 3. 텍스트 정제 규칙 추가
-```python
-# recru_it.py의 get_job_detail()에 추가
-title = re.sub('오타', '수정', title)
-detail = re.sub('불필요한문자', '', detail)
-```
-
----
-
-## 트러블슈팅
-
-### 1. ChromeDriver 오류
-
-**증상**:
-```
-selenium.common.exceptions.WebDriverException: 'chromedriver' executable needs to be in PATH
-```
-
-**해결**:
-```bash
-# webdriver_manager가 자동으로 설치하므로 일반적으로 발생하지 않음
-# 수동 설치가 필요한 경우:
-brew install chromedriver  # macOS
-```
-
-### 2. 타임아웃 오류
-
-**증상**:
-```
-TimeoutException: Message: timeout
-```
-
-**해결**:
-- `settings.py`에서 `sleep_before`, `sleep_between` 값 증가
-- 네트워크 상태 확인
-
-### 3. 빈 결과 파일
-
-**증상**:
-`recru_result.json`이 비어있거나 아이템이 적음
-
-**해결**:
-1. `first_no_simple` 값 확인 (콘솔 출력)
-2. 지역 키워드 확인 (`keywords` 설정)
-3. 필터링 규칙 확인 (`pipelines.py`)
-
-### 4. 중복 아이템
-
-**증상**:
-동일한 공고가 여러 번 나타남
-
-**해결**:
-- `DuplicatesPipeline`이 활성화되어 있는지 확인 (`settings.py`)
-- 제목/연락처 정규화 로직 확인
-
-### 5. 수동 아이템이 추가되지 않음
-
-**증상**:
-`MANUAL_JOBS_BY_REGION`에 추가했는데 JSON에 없음
-
-**해결**:
-1. 주석(`#`) 제거 확인
-2. 지역 이름 정확히 일치하는지 확인 (`'서울'` vs `'Seoul'`)
-3. 11개 필드 모두 포함했는지 확인
-
-### 6. Import 오류
-
-**증상**:
-```
-ImportError: cannot import name 'MANUAL_JOBS_BY_REGION' from 'recru_it.settings'
-```
-
-**해결**:
-```bash
-# settings.py 저장 확인
-# 프로젝트 디렉토리 확인
-cd recru_it
-pwd  # /Users/jay/Documents/Recru_It_JSON/recru_it 확인
-```
-
----
-
-## 테스트 및 검증
-
-### 1. 크롤링 테스트
-
-```bash
-cd recru_it
-scrapy crawl recru_it
-```
-
-**성공 시 출력**:
-```
-...
-총 아이템 수 : [XXX]
-first_no_simple : [YY]
-# # # # # # # # # # # # # # # # # # # # # #   정상종료   # # # # # # # # # # # # # # # # # # # # # #
-```
-
-### 2. 결과 검증
-
-```bash
-# 아이템 개수 확인
-cat recru_result.json | python3 -m json.tool | grep '"title"' | wc -l
-
-# 지역별 분포 확인
-cat recru_result.json | python3 -m json.tool | grep '"site"' | sort | uniq -c
-
-# 수동 아이템 확인 (부산 예시)
-cat recru_result.json | python3 -m json.tool | grep -A 5 '"부산 양정 롯데"'
-```
-
-### 3. 데이터 품질 확인
-
-```bash
-# 필수 필드 누락 확인
-cat recru_result.json | python3 -m json.tool | grep '"title": ""'
-cat recru_result.json | python3 -m json.tool | grep '"phone": ""'
-
-# 중복 확인 (제목 기준)
-cat recru_result.json | python3 -m json.tool | grep '"title"' | sort | uniq -d
-```
-
----
-
-## 성능 및 통계
-
-### 크롤링 속도
-- 초기 로드: 2~13초
-- 스크롤링: 약 3~5분 (39~52회 × 3~5초)
-- 지역별 크롤링: 약 10~30분 (지역별 대기 시간 차이)
-- **총 소요 시간**: 약 15~45분
-
-### 수집 데이터 규모
-- **서울**: 약 200~500개
-- **부산**: 약 100~300개
-- **경기**: 최대 450개 (제한)
-- **인천**: 최대 450개 (제한)
-- **충북**: 최대 450개 (제한)
-- **기타 지역**: 약 50~200개
-- **총합**: 약 1,500~3,000개
-
-### 코드 메트릭스 (리팩토링 후)
-- **코드 줄 수**: 375줄 (리팩토링 전: 840줄)
-- **중복 코드**: 0줄 (리팩토링 전: 465줄)
-- **순환 복잡도**: 낮음 (메서드 분리)
-- **유지보수성**: 높음 (설정 외부화)
-
----
-
-## 커밋 히스토리
-
-```
-bf3a80f feat: 지역별 수동 채용정보 추가 기능 구현
-1ac2c71 refactor: 코드 중복 제거 및 설정 외부화
-c5c0369 refactor: constants 모듈 분리 및 import 구조 개선
-77b7126 Recru_It
-41c3f2b 경기, 인천, 충북 리스트 450개 까지만 적용
-```
-
----
-
-## 라이선스
-
-이 프로젝트는 개인 프로젝트입니다.
-
----
-
-## 연락처
-
-프로젝트 관련 문의: [GitHub Issues](https://github.com/사용자이름/Recru_It_JSON/issues)
-
----
-
-**마지막 업데이트**: 2025-10-28
-**버전**: 2.0.0 (리팩토링 완료)
+정기 실행 기록은 [집계 절차](docs/stage1-baseline-collection.md)를 따른다.
+같은 코드의 정기 실행 3~5회를 검토하며, 수동 시험은 별도로 표시한다. 집계 명령은 자동 감시를
+예약하지 않으므로 실행이 끝난 뒤 다시 실행해야 한다. 새 운영 코드·의존성·워크플로는
+새 `--cohort <이름>=<코드 SHA>`로 등록한다.
+
+현재 코드의 목록 보완 시험은 20분 48초였다. 서로 다른 날의 공고 수·요청 구성·지연이 다르므로
+향후 실행 시간이나 절감률을 고정값으로 보장하지 않는다. 원시 통계·결과 파일에 포함된 정보는
+문서에 복사하지 않고 실행 ID와 집계 수치로 연결한다.
+
+최종 갱신: 2026-09-15. 유지보수 후보의 실제 master 반영 상태는 Git 이력으로 확인한다.

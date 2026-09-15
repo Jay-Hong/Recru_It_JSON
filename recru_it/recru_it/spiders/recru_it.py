@@ -23,7 +23,7 @@ from recru_it.observation import (
     ServerUnavailable, VerificationError, quiet_browser_logging,
 )
 from recru_it.settings import CRAWL_CONFIG, MANUAL_JOBS_BY_REGION
-from recru_it.spiders.constants import LANG, USER_AGENTS, WINDOW_SIZES
+from recru_it.spiders.constants import LANG, WINDOW_SIZES
 
 class Recru_It_Spider(scrapy.Spider):
     name = "recru_it";recru_it = "ecruit";dotdcom = "o.com/r";db = "lda"
@@ -42,7 +42,6 @@ class Recru_It_Spider(scrapy.Spider):
         headlessoptions.add_argument('headless')
         headlessoptions.add_argument(random.choice(LANG))
         headlessoptions.add_argument(random.choice(WINDOW_SIZES))
-        headlessoptions.add_argument(f"User-Agent: {random.choice(USER_AGENTS)}")
         headlessoptions.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=headlessoptions)
         self.observation = Observation(self.driver, self.start_urls[0])
