@@ -93,7 +93,7 @@ class Observation:
             'complete': False, 'regions': {}, 'counts': Counter(),
             'seconds': defaultdict(float), 'attempts': [], 'scrolls': [],
             'diagnostics': Counter(), 'format_mismatches': Counter(),
-            'drop_reasons': Counter(), 'identity_diagnostics_version': 1, 'list_timeouts': [],
+            'drop_reasons': Counter(), 'identity_diagnostics_version': 2, 'list_timeouts': [],
         }
         self.driver.execute_cdp_cmd('Network.enable', {})
         self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {

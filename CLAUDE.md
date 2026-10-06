@@ -79,6 +79,7 @@
 - 통계는 `recru-stats-<run_id>-<attempt>` artifact의 `recru-stats.json`으로 14일 보관한다.
   업로드 실패는 결과 반영을 막지 않으므로 통계 누락 여부도 확인한다.
 - 진단에는 숫자 코드·공고 ID·상태·시간을 남기며 상세 응답 본문을 추가 보관하지 않는다.
+  JSON 파싱 실패는 고정된 분류값과 숫자 위치만 남기고 브라우저 오류 문구·본문 일부는 남기지 않는다.
   Selenium/urllib3 통신 로그는 WARNING이다. 기존 Scrapy 로그에는 공고 내용이 남을 수 있다.
 
 ## Actions와 의존성

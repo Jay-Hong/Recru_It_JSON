@@ -94,6 +94,40 @@
     if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
     return typeof value === 'string' && /^\d{1,20}$/.test(value) ? value : null;
   };
+  // V8 parse messages may quote the response, so only these fixed categories leave the page.
+  const parseErrorCategories = [
+    [/^Bad control character in string literal/, 'bad_control_character'],
+    [/^Unterminated string/, 'unterminated_string'],
+    [/^Unexpected end of JSON input/, 'unexpected_end'],
+    [/^Unexpected non-whitespace character after JSON/, 'trailing_content'],
+    [/^Bad (escaped character|Unicode escape)/, 'bad_escape'],
+    [/^(No number after minus sign|Unterminated fractional number|Exponent part is missing a number)/, 'bad_number'],
+    [/^(Unexpected (token|number|string)|Expected )/, 'unexpected_token'],
+  ];
+  const firstTokens = {'{': 'object', '[': 'array', '"': 'quote', '<': 'less_than'};
+  function contentTypeClass(xhr) {
+    let value;
+    try { value = xhr.getResponseHeader('content-type'); } catch (_) { return 'unavailable'; }
+    if (typeof value !== 'string' || !value.trim()) return 'missing';
+    const type = value.split(';')[0].trim().toLowerCase();
+    return /[/+]json$/.test(type) ? 'json' : type === 'text/html' ? 'html' :
+      type === 'text/plain' ? 'plain' : 'other';
+  }
+  function invalidJson(xhr, source, error) {
+    const message = error && typeof error.message === 'string' ? error.message : '';
+    const known = parseErrorCategories.find(([pattern]) => pattern.test(message));
+    // Accept a position only from a message without a quoted excerpt.
+    const at = known && /^[^"]* JSON at position (\d{1,9})(?: \(line \d{1,9} column \d{1,9}\))?$/.exec(message);
+    const position = at ? Number(at[1]) : null;
+    const token = /[^ \t\n\r]/.exec(source);
+    const bounded = position !== null && position <= source.length ? position : null;
+    return {state: 'invalid_json', parse_error_category: known ? known[1] : 'other',
+      // At the end means the body stopped early, e.g. after a complete value.
+      parse_error_position: bounded, parse_error_at_end: bounded === null ? null : bounded === source.length,
+      first_token_class: source.charCodeAt(0) === 0xfeff ? 'bom' : !token ? 'whitespace_only' :
+        firstTokens[token[0]] || 'other',
+      content_type_class: contentTypeClass(xhr)};
+  }
   function responseDiagnostic(xhr) {
     try {
       let body;
@@ -103,7 +137,7 @@
         if (typeof source !== 'string') return {state: 'unavailable'};
         if (!source.length) return {state: 'empty'};
         if (source.length > 262144) return {state: 'too_large'};
-        try { body = JSON.parse(source); } catch (_) { return {state: 'invalid_json'}; }
+        try { body = JSON.parse(source); } catch (error) { return invalidJson(xhr, source, error); }
       } else return {state: 'unsupported_type'};
       if (!body || typeof body !== 'object' || Array.isArray(body)) return {state: 'not_object'};
       const own = key => Object.prototype.hasOwnProperty.call(body, key);

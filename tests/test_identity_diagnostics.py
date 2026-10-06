@@ -57,7 +57,8 @@ class Handler(BaseHTTPRequestHandler):
         self.server.posts.append((self.path, self.rfile.read(int(self.headers['Content-Length']))))
         data = self.server.payload
         self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
+        if self.server.content_type:
+            self.send_header('Content-Type', self.server.content_type)
         self.send_header('Content-Length', str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -88,6 +89,7 @@ class IdentityDiagnosticTests(unittest.TestCase):
 
     def setUp(self):
         self.server.posts = []
+        self.server.content_type = 'application/json'
         self.payload({'rescode': 200, 'data': {'idx': '101', 'phone': PRIVATE}, 'message': PRIVATE})
         self.driver.get(self.url)
         self.observation = Observation(self.driver, self.url)
@@ -184,12 +186,68 @@ class IdentityDiagnosticTests(unittest.TestCase):
         self.assertEqual(self.observation.stats['diagnostics']['request_link_missing'], 1)
 
     def test_invalid_and_empty_bodies_are_described_without_retaining_them(self):
-        for payload, state in [(b'', 'empty'), (PRIVATE.encode(), 'invalid_json'), (b'[]', 'not_object')]:
+        for payload, state in [(b'', 'empty'), (b'[]', 'not_object')]:
             with self.subTest(state=state):
                 self.payload(payload)
                 record, snapshot = self.click()
                 self.assertFalse(snapshot['ok'])
                 self.assertEqual(record['detail_responses'][0]['response'], {'state': state})
+
+    def test_invalid_json_is_classified_without_retaining_text_or_parser_message(self):
+        head = '{"rescode":200,"data":{"idx":"101","title":"' + PRIVATE
+        cases = [
+            ('control character', head + '\tx"}}', 'application/json; charset=utf-8',
+             'bad_control_character', len(head), False, 'object', 'json'),
+            ('truncated string', head, 'application/json', 'unterminated_string', len(head), True, 'object', 'json'),
+            ('truncated number', head + '","pay":1.', 'application/json', 'bad_number', len(head) + 10, True,
+             'object', 'json'),
+            ('bad escape', head + '\\q"}}', 'application/json', 'bad_escape', len(head) + 1, False, 'object', 'json'),
+            ('trailing text', head + '"}}' + PRIVATE, 'application/problem+json',
+             'trailing_content', len(head) + 3, False, 'object', 'json'),
+            ('html', '<html><body>' + PRIVATE + '</body></html>', 'text/html', 'unexpected_token', None, None,
+             'less_than', 'html'),
+            ('plain text', PRIVATE, None, 'unexpected_token', None, None, 'other', 'missing'),
+            ('quoted text', '"' + PRIVATE + '" x', 'text/plain', 'trailing_content', len(PRIVATE) + 3, False,
+             'quote', 'plain'),
+            ('array tail', '[' + PRIVATE, 'text/csv', 'unexpected_token', None, None, 'array', 'other'),
+            ('whitespace', ' \n\t ', 'application/json', 'unexpected_end', None, None, 'whitespace_only', 'json'),
+            # UTF-8 decoding removes one byte-order mark; a second one reaches the parser.
+            ('byte order mark', '\ufeff\ufeff{}', 'application/json', 'unexpected_token', None, None, 'bom', 'json'),
+        ]
+        for name, body, content_type, category, position, at_end, token, kind in cases:
+            with self.subTest(name):
+                self.server.content_type = content_type
+                self.payload(body.encode())
+                record, snapshot = self.click()
+                self.assertFalse(snapshot['ok'])
+                self.assertEqual(record['detail_responses'][0]['response'], {
+                    'state': 'invalid_json', 'parse_error_category': category,
+                    'parse_error_position': position, 'parse_error_at_end': at_end,
+                    'first_token_class': token, 'content_type_class': kind})
+                stats = json.dumps(self.observation.stats, ensure_ascii=False)
+                for private in ('not valid JSON', 'html>', 'Unexpected', 'text/html'):
+                    self.assertNotIn(private, stats)
+        self.assertEqual(self.observation.stats['identity_diagnostics_version'], 2)
+
+    def test_unrecognized_parser_messages_and_header_failures_use_fixed_fallbacks(self):
+        self.driver.execute_script('''
+            const parse = JSON.parse;
+            JSON.parse = function (source) {
+              if (typeof source === 'string' && source.startsWith('stub-'))
+                throw new SyntaxError('private wording in JSON at position 3');
+              return parse.apply(this, arguments);
+            };
+            XMLHttpRequest.prototype.getResponseHeader = () => { throw Error('private header failure'); };
+        ''')
+        self.payload(('stub-' + PRIVATE).encode())
+        record, snapshot = self.click()
+        self.assertFalse(snapshot['ok'])
+        self.assertEqual(record['detail_responses'][0]['response'], {
+            'state': 'invalid_json', 'parse_error_category': 'other', 'parse_error_position': None,
+            'parse_error_at_end': None, 'first_token_class': 'other', 'content_type_class': 'unavailable'})
+        stats = json.dumps(self.observation.stats, ensure_ascii=False)
+        self.assertNotIn('private wording', stats)
+        self.assertNotIn('private header failure', stats)
 
     def test_data_shapes_and_non_numeric_codes_never_leak_values(self):
         self.driver.execute_script('keepModel=true')
@@ -249,7 +307,7 @@ class IdentityDiagnosticTests(unittest.TestCase):
 class DiagnosticPublicationTests(unittest.TestCase):
     def test_missing_new_diagnostics_do_not_change_the_existing_publication_policy(self):
         items, stats = valid_run()
-        stats['identity_diagnostics_version'] = 1
+        stats['identity_diagnostics_version'] = 2
         stats['diagnostics'] = {'identity_diagnostic_missing': 1, 'response_diagnostic_missing': 1}
         validate(items, stats, 'current')
 

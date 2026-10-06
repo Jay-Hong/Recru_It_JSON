@@ -10,7 +10,8 @@
 
 ## 기록 항목
 
-통계의 `identity_diagnostics_version=1`은 이 부가 기록을 지원한다는 뜻이다. 결과 JSON 형식은 같다.
+통계의 `identity_diagnostics_version=1`은 이 부가 기록을 지원한다는 뜻이고, `2`는 아래 JSON 파싱 실패
+분류가 추가됐다는 뜻이다(2026-10-07). 결과 JSON 형식은 같다.
 
 - `attempts[].job_id`: 클릭 대상으로 준비한 목록 카드의 공고 ID.
 - `attempts[].identity`: 시도 종료 시점의 상세 모델 상태. 기존 `identity` 검증과 같은 조건으로
@@ -23,6 +24,15 @@
 - `response`: `state`, 숫자 `rescode`와 `rescode_state`, `data_state`, 응답 데이터의 `job_id`.
   `data_state`는 필드 없음, null, 빈 객체/배열, 객체/배열 및 값의 자료형을 구분한다.
   ID나 코드가 예상된 숫자 형식이 아니면 원문 대신 null을 남긴다. 원래 사이트 판정에는 영향을 주지 않는다.
+- `state=invalid_json`일 때(버전 2): `parse_error_category`(`bad_control_character`, `unterminated_string`,
+  `unexpected_end`, `trailing_content`, `bad_escape`, `bad_number`, `unexpected_token`, `other`),
+  `parse_error_position`(인용문이 없는 브라우저 오류 형식에서만 읽은 숫자 위치, 없으면 null),
+  `parse_error_at_end`(그 위치가 응답 끝인지. 완전한 값 뒤에서 응답이 끊긴 경우를 구분하며 위치가 없으면 null),
+  `first_token_class`(`object`, `array`, `quote`, `less_than`, `bom`, `whitespace_only`, `other`),
+  `content_type_class`(`json`, `html`, `plain`, `other`, `missing`, `unavailable`)만 남긴다.
+  브라우저 오류 메시지는 응답 일부를 인용할 수 있으므로 메시지·본문 일부·원래 헤더 값은 남기지 않는다.
+  2026-10-01부터 매일 약 40건의 상세 응답이 이 상태로 실패해 원인 구분을 위해 추가했다.
+  분류는 브라우저 파서의 오류 문구에 의존하므로 문구가 바뀌면 `other`·null이 될 수 있다.
 - `list_timeouts[]`: 목록 준비 확인 시간이 초과될 때 직전 기준 개수, 경과 시간과 마지막
   화면/모델 개수·요청 진행 여부·목록 이벤트 수·끝 신호를 남긴다. 수집 조건이나 제한 시간은 바꾸지 않는다.
 
@@ -52,6 +62,9 @@ CDP 응답 본문 조회, 추가 사이트 요청, 요청 헤더/본문 변경�
 `tests/test_identity_diagnostics.py`는 외부 채용 사이트 대신 로컬 HTTP 서버와 실제 Chrome XHR을 쓴다.
 정상 text/JSON 응답, 내부 오류, 누락/빈 데이터, 이전 모델 유지, 다른 ID, 같은 공고 재시도,
 CDP 연결 누락, 잘못된 JSON, 큰 응답, 진단 읽기 예외, 허용하지 않은 식별자/문자열을 확인한다.
+잘못된 JSON은 제어 문자·잘린 문자열/숫자·잘못된 escape·뒤에 붙은 내용·HTML·일반 문자열·공백·BOM과
+Content-Type 유무별로 분류하고, 오류 문구나 본문 일부가 통계에 남지 않는지 확인한다.
+알 수 없는 오류 문구와 헤더 읽기 실패는 `other`·null·`unavailable`로 남는 것도 확인한다.
 앱이 받은 응답과 요청 횟수/본문이 유지되고, 진단에 본문이나 오류 메시지가 남지 않는지도 확인한다.
 기존 검증기를 사용해 새 진단의 누락만으로 반영 정책이 달라지지 않는 것을 확인한다.
 
