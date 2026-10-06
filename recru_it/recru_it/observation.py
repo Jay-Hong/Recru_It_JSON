@@ -183,7 +183,8 @@ class Observation:
     def salary_card(self, card):
         try:
             return self.driver.execute_script('return window.__recruObserver.salaryCard(arguments[0])', card)
-        except JavascriptException as error:
+        except WebDriverException as error:
+            # Like a click-path browser error, a stale card is an item problem unless the page is lost.
             self.require_observer()
             raise EvidenceUnavailable('salary_card_unavailable') from error
 

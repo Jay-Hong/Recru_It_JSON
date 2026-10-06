@@ -9,6 +9,7 @@ from unittest.mock import patch
 from scripts.collect_stage1_baseline import (
     WORKFLOW, cohorts_from_specs, collect, identify_cohort, immutable_write, report, summarize,
 )
+from recru_it.pacing import SalaryAudit
 
 
 def sample():
@@ -95,6 +96,26 @@ class BaselineReportTests(unittest.TestCase):
         self.assertLess(row['attempt_seconds_per_candidate'], 2)
         stats['prefilter']['audit_checked'] = 1
         self.assertFalse(summarize(run, stats, jobs, True)['comparable'])
+
+    def test_versioned_prefilter_uses_the_publication_audit_ledger(self):
+        run, stats, jobs = sample()
+        stats['optimizations'] = {'salary_prefilter': True}
+        audit = SalaryAudit(stats, .2)
+        for draw, outcome in [(None, 'failed'), (None, 'checked')] + [(.9, None)] * 10:
+            event = audit.select('low_daily_pay', '0', lambda: draw)
+            if event['outcome'] is None:
+                audit.finish(event, outcome)
+        stats['regions']['0'].update(candidates=61, prefiltered=10)
+        row = summarize(run, stats, jobs, True, cohort='replacement')
+        self.assertTrue(row['comparable'])
+        self.assertEqual(row['prefiltered'], 10)
+        events = stats['prefilter_events']
+        events[1], events[2] = events[2], events[1]  # A skip while a replacement audit was owed.
+        for number, event in enumerate(events, 1):
+            event['n'] = number
+        row = summarize(run, stats, jobs, True)
+        self.assertFalse(row['comparable'])
+        self.assertIn('incomplete_or_inconsistent_statistics', row['review'])
 
     def test_missing_collection_step_and_unverified_readiness_do_not_count(self):
         run, stats, jobs = sample()

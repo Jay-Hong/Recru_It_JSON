@@ -1,7 +1,6 @@
 #~/Documents/Recru_It_JSON/recru_it/recru_it/spiders/recru_it.py
 
 from datetime import date, timedelta
-from collections import Counter
 import math
 import random
 import re
@@ -16,7 +15,7 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
 from recru_it.items import Recru_It_Item
-from recru_it.pacing import StartInterval, salary_exclusion
+from recru_it.pacing import SalaryAudit, StartInterval, salary_exclusion
 from recru_it.pipelines import pattern_day10_14, pattern_month10_14
 from recru_it.observation import (
     ClickNotReady, EvidenceUnavailable, FormatMismatch, Observation, ObservationUnavailable,
@@ -83,7 +82,7 @@ class Recru_It_Spider(scrapy.Spider):
         self.scroll_pacer = (StartInterval(self.optimizations['scroll_interval'], self.observation.sleep, 'scroll_wait')
                              if self.optimizations.get('scroll_interval') else None)
         self.observation.stats['optimizations'] = self.optimizations
-        self.observation.stats['prefilter'] = Counter()
+        self.salary_audit = SalaryAudit(self.observation.stats, rate)
 
     def item_dropped(self, item, response, exception, spider):
         region = self._item_regions.pop(id(item))
@@ -159,8 +158,8 @@ class Recru_It_Spider(scrapy.Spider):
                 continue
 
             region_stats['candidates'] += 1
-            exclusion, audit = self.prefilter_decision(job_item)
-            if exclusion and not audit:
+            audit = self.prefilter_decision(job_item, region_name)
+            if audit and audit['outcome'] == 'skipped':
                 region_stats['prefiltered'] += 1
                 continue
 
@@ -172,6 +171,8 @@ class Recru_It_Spider(scrapy.Spider):
                 region_phase_seconds = 0
                 record = self.observation.start_attempt(region_name, retry)
                 record['region_first_candidate'] = first_in_region
+                record['salary_audit'] = audit['selection'] if audit else None
+                record['salary_eligible_number'] = audit['n'] if audit else None
                 outcome = 'unexpected_error'
                 try:
                     readiness = getattr(self, 'optimizations', {}).get('click_readiness')
@@ -207,7 +208,6 @@ class Recru_It_Spider(scrapy.Spider):
                         # including any extra time spent waiting for movement.
                         record['click_gap_seconds'] = pacer.mark_start()
                     record['click_started_seconds'] = time.monotonic() - self.observation.started
-                    record['salary_audit'] = audit
                     job_item.click()
                     if not pacer:
                         self.observation.sleep(.5, 'post_click_wait')
@@ -251,17 +251,18 @@ class Recru_It_Spider(scrapy.Spider):
                     break
             if raw is None:
                 if audit:
-                    self.observation.stats['prefilter']['audit_failed'] += 1
+                    # The next card with the same reason must be audited before any skip.
+                    self.salary_audit.finish(audit, 'failed')
                 region_stats['failed'] += 1
                 self.observation.stats['counts']['final_failed'] += 1
                 continue
             values = self.get_job_detail(raw)
             if audit:
-                pattern = pattern_day10_14 if exclusion == 'low_daily_pay' else pattern_month10_14
+                pattern = pattern_day10_14 if audit['reason'] == 'low_daily_pay' else pattern_month10_14
                 if not pattern.search(values[3]):
-                    self.observation.stats['prefilter']['audit_mismatch'] += 1
+                    self.salary_audit.finish(audit, 'mismatch')
                     raise ObservationUnavailable('salary_prefilter_audit_mismatch')
-                self.observation.stats['prefilter']['audit_checked'] += 1
+                self.salary_audit.finish(audit, 'checked')
             item = Recru_It_Item(zip(
                 ('title', 'site', 'type', 'pay', 'etc1', 'etc2', 'etc3', 'numpeople', 'phone', 'detail', 'imageURL'), values
             ))
@@ -272,28 +273,21 @@ class Recru_It_Spider(scrapy.Spider):
             yield item
         region_stats['complete'] = True
 
-    def prefilter_decision(self, card):
+    def prefilter_decision(self, card, region_name):
+        """Return None to collect normally, or the salary audit event (skipped or selected)."""
         options = getattr(self, 'optimizations', {})
         if not options.get('salary_prefilter'):
-            return None, False
-        stats = self.observation.stats['prefilter']
+            return None
         try:
             exclusion = salary_exclusion(self.observation.salary_card(card))
         except EvidenceUnavailable:
             # No exclusion evidence: collect and verify through the normal path.
-            stats['unavailable'] += 1
-            return None, False
+            self.salary_audit.total['unavailable'] += 1
+            return None
         if not exclusion:
-            return None, False
-        stats['eligible'] += 1
-        # Guarantee a sample even when very few low-pay cards are present.
-        audit = stats['eligible'] == 1 or random.random() < options.get('salary_audit_rate', .2)
-        if audit:
-            stats['audit_selected'] += 1
-        else:
-            stats['skipped'] += 1
-            stats[exclusion] += 1
-        return exclusion, audit
+            return None
+        # Each reason gets an initial audit, and an unverifiable audit is replaced.
+        return self.salary_audit.select(exclusion, region_name, random.random)
 
     def scroll_list(self, cards, planned):
         summary = {'planned': planned, 'completed': 0, 'ended': False}

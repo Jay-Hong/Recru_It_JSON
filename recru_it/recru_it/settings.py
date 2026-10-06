@@ -101,9 +101,9 @@ FEED_EXPORT_INDENT = 4
 # 크롤링 설정
 CRAWL_CONFIG = {
     'optimizations': {
-        # 2026-10-07: temporarily off. Some detail responses became unverifiable on 2026-10-01,
-        # and an audit sample landing on one blocks publication. Re-enable after audit replacement.
-        'salary_prefilter': False,
+        # 2026-10-07: an unverifiable audit sample is replaced by the next card of the same
+        # pay unit before any further skip (pacing.SalaryAudit); False collects every card.
+        'salary_prefilter': True,
         'salary_audit_rate': 0.2,
         'click_interval': (1.6, 2.8),  # None restores regional waits + 0.5 seconds.
         'click_readiness': {'stable_seconds': 0.2, 'timeout_seconds': 5},

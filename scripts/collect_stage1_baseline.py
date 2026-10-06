@@ -10,11 +10,15 @@ from pathlib import Path
 import re
 import statistics
 import subprocess
+import sys
 from urllib.parse import urlencode
 import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'recru_it'))
+from recru_it.pacing import salary_audit_problems  # noqa: E402  # Shared with the publish gate.
+
 REPO = 'Jay-Hong/Recru_It_JSON'
 WORKFLOW = '.github/workflows/main.yml'
 TESTED_CODE = '34ad3b154c07f043a89ebcd69eda51a48c7c6809'
@@ -134,10 +138,7 @@ def summarize(run, stats, jobs, code_matches, reference=False, cohort='stage1'):
         and stats['saved'] + stats['dropped'] == verified + counts.get('manual', 0)
         and sum(stats['drop_reasons'].values()) == stats['dropped']
         and row['outcomes'].get('verified', 0) == verified
-        and row['prefiltered'] == row['prefilter'].get('skipped', 0)
-        and row['prefilter'].get('audit_selected', 0) == row['prefilter'].get('audit_checked', 0)
-        and not row['prefilter'].get('audit_failed', 0)
-        and not row['prefilter'].get('audit_mismatch', 0))
+        and salary_audit_accounting(stats, row))
     if not accounting or not stats['complete'] or stats['close_reason'] != 'finished':
         row['review'].append('incomplete_or_inconsistent_statistics')
     if failed or stats['format_mismatches']:
@@ -156,6 +157,16 @@ def summarize(run, stats, jobs, code_matches, reference=False, cohort='stage1'):
         and not stats['spider_errors'] and not counts.get('server_unavailable', 0)
         and not any(stats['diagnostics'].values()))
     return row
+
+
+def salary_audit_accounting(stats, row):
+    if 'salary_audit_version' in stats:
+        return not salary_audit_problems(stats)
+    # Statistics written before replacement audits keep the rule they were published under.
+    return (row['prefiltered'] == row['prefilter'].get('skipped', 0)
+            and row['prefilter'].get('audit_selected', 0) == row['prefilter'].get('audit_checked', 0)
+            and not row['prefilter'].get('audit_failed', 0)
+            and not row['prefilter'].get('audit_mismatch', 0))
 
 
 def collect(run, output, cohorts, reference=False):

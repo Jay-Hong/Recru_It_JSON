@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 
+from recru_it.pacing import salary_audit_problems
 from recru_it.settings import CRAWL_CONFIG
 
 
@@ -30,19 +31,8 @@ def validate(items, stats, run_id, minimum=50):
     # A format mismatch rejects that snapshot; it does not reject other items
     # whose atomic values passed both identity and text-compatibility checks.
     counts = stats.get('counts', {})
-    skipped = sum(region.get('prefiltered', 0) for region in regions.values())
     options = stats.get('optimizations', {})
-    prefilter = stats.get('prefilter', {})
-    if options.get('salary_prefilter'):
-        if (skipped != prefilter.get('skipped', 0) or
-                skipped != prefilter.get('low_daily_pay', 0) + prefilter.get('low_monthly_pay', 0) or
-                prefilter.get('eligible', 0) != skipped + prefilter.get('audit_selected', 0) or
-                prefilter.get('audit_selected', 0) != prefilter.get('audit_checked', 0) or
-                prefilter.get('audit_failed', 0) or prefilter.get('audit_mismatch', 0) or
-                (skipped and not prefilter.get('audit_checked', 0))):
-            problems.append('salary prefilter counts or audit did not pass')
-    elif skipped:
-        problems.append('salary exclusions without enabled prefilter')
+    problems.extend(salary_audit_problems(stats))
     if options.get('scroll_interval'):
         collection = stats.get('list_collection', {})
         if (not collection or collection.get('completed') != len(stats.get('scrolls', [])) or
@@ -96,10 +86,15 @@ def report_quality(stats):
     """Make partial losses visible without changing the publication decision."""
     failed = stats['counts'].get('final_failed', 0)
     format_attempts = sum(attempt['outcome'] == 'format_mismatch' for attempt in stats['attempts'])
+    audit = stats.get('prefilter', {})
+    audit_note = (f"; unverifiable salary audits: {audit['audit_failed']} "
+                  f"(replaced: {audit.get('audit_replacements', 0)}, "
+                  f"pending at end: {audit.get('audit_replacement_pending', 0)})"
+                  if audit.get('audit_failed') else '')
     if failed or format_attempts or stats['format_mismatches']:
         # Only aggregate numbers enter the workflow command, never site content.
         prefix = '::warning title=Collection quality::' if os.environ.get('GITHUB_ACTIONS') == 'true' else 'WARNING: '
-        print(f'{prefix}Final failed items: {failed}; format mismatch attempts: {format_attempts}. '
+        print(f'{prefix}Final failed items: {failed}; format mismatch attempts: {format_attempts}{audit_note}. '
               'Only verified snapshots are published; review the statistics artifact.')
 
 
